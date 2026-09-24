@@ -1,0 +1,40 @@
+{
+  "name": "@dlusn/ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "LLM-agnostic seam for DLUSN and ekoni. Text, vision, structured output, speech, pricing.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./speech": "./src/speech/index.ts",
+    "./stub": "./src/stub.ts",
+    "./pricing": "./src/pricing.ts",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "node scripts/no-emdash.mjs && node scripts/no-vendor-leak.mjs && vitest run",
+    "typecheck": "tsc --noEmit",
+    "no-emdash": "node scripts/no-emdash.mjs",
+    "no-vendor-leak": "node scripts/no-vendor-leak.mjs",
+    "deno:check": "deno check --config deno.json fixtures/deno-check.ts fixtures/edge-function.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.0",
+    "@ai-sdk/google": "^2.0.0",
+    "@ai-sdk/openai": "^2.0.0",
+    "ai": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "~5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
