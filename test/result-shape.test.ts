@@ -76,6 +76,31 @@ describe('one LlmResult shape across adapters', () => {
     expect(fake.calls[0]?.url).toBe('https://models.internal.test/v1/chat/completions');
   });
 
+  it('openai-compatible with no key, for Ollama, LM Studio and vLLM', async () => {
+    setEnv({
+      LLM_PROVIDER: 'openai-compatible',
+      LLM_BASE_URL: 'https://models.internal.test/v1',
+      LLM_MODEL_CHAT: 'house-model-1',
+    });
+    const fake = fakeFetch(() => jsonResponse(OPENAI_CHAT_COMPLETION));
+    restore = fake.restore;
+
+    const result = await complete(REQUEST);
+
+    assertContractShape(result, { provider: 'openai-compatible', model: 'house-model-1' });
+    expect(fake.calls).toHaveLength(1);
+  });
+
+  it('anthropic with no key still throws', async () => {
+    setEnv({ LLM_PROVIDER: 'anthropic' });
+    const fake = fakeFetch(() => {
+      throw new Error('a missing key must never reach the network');
+    });
+    restore = fake.restore;
+
+    await expect(complete(REQUEST)).rejects.toThrowError(/No API key/);
+  });
+
   it('google', async () => {
     setEnv({ LLM_PROVIDER: 'google', GOOGLE_API_KEY: 'test-key' });
     const fake = fakeFetch(() => jsonResponse(GOOGLE_GENERATE_CONTENT));

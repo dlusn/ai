@@ -176,7 +176,8 @@ export function resolveModel(role: LlmRole): ResolvedModel {
   }
 
   const apiKey = envFirst('LLM_API_KEY', ...(KEY_FALLBACKS[provider] ?? []));
-  if (!apiKey && provider !== 'stub') {
+  const keyOptional = provider === 'stub' || (provider === 'openai-compatible' && !!baseURL);
+  if (!apiKey && !keyOptional) {
     throw new LlmError(
       `No API key for provider "${provider}". Set LLM_API_KEY${
         KEY_FALLBACKS[provider] ? ` or ${KEY_FALLBACKS[provider]![0]}` : ''

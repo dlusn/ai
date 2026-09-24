@@ -20,6 +20,10 @@ Everything in the A1 scope is built and gated.
 | Gates: `no-emdash`, `no-vendor-leak`, `tsc`, `deno check` | done |
 | README, AGENTS.md, DECISIONS.md | done |
 
+## v0.1.0, 25 Sep 2026: A1b, keyless openai-compatible
+
+`resolveModel` no longer throws on a missing key when `LLM_PROVIDER=openai-compatible` and `LLM_BASE_URL` is set, so Ollama, LM Studio and vLLM run without one. `anthropic`, `openai` and `google` still throw at resolve time.
+
 ## Not in this card
 
 - **Consumer swaps.** `cmd` and `body` move onto the package in later cards. No
