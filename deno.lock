@@ -1,11 +1,12 @@
 {
   "version": "5",
   "specifiers": {
-    "npm:@ai-sdk/anthropic@2": "2.0.105_zod@4.6.5",
-    "npm:@ai-sdk/google@2": "2.0.99_zod@4.6.5",
-    "npm:@ai-sdk/openai@2": "2.0.129_zod@4.6.5",
+    "npm:@ai-sdk/anthropic@2.0.105": "2.0.105_zod@4.6.5",
+    "npm:@ai-sdk/gateway@2.0.157": "2.0.157_zod@4.6.5",
+    "npm:@ai-sdk/google@2.0.99": "2.0.99_zod@4.6.5",
+    "npm:@ai-sdk/openai@2.0.129": "2.0.129_zod@4.6.5",
     "npm:@types/node@^26.4.1": "26.6.2",
-    "npm:ai@5": "5.0.265_zod@4.6.5",
+    "npm:ai@5.0.265": "5.0.265_zod@4.6.5",
     "npm:typescript@5.9": "5.9.3",
     "npm:vitest@^3.2.0": "3.2.7_@types+node@26.6.2"
   },
@@ -719,18 +720,20 @@
   },
   "workspace": {
     "dependencies": [
-      "npm:@ai-sdk/anthropic@2",
-      "npm:@ai-sdk/google@2",
-      "npm:@ai-sdk/openai@2",
-      "npm:ai@5"
+      "npm:@ai-sdk/anthropic@2.0.105",
+      "npm:@ai-sdk/gateway@2.0.157",
+      "npm:@ai-sdk/google@2.0.99",
+      "npm:@ai-sdk/openai@2.0.129",
+      "npm:ai@5.0.265"
     ],
     "packageJson": {
       "dependencies": [
-        "npm:@ai-sdk/anthropic@2",
-        "npm:@ai-sdk/google@2",
-        "npm:@ai-sdk/openai@2",
+        "npm:@ai-sdk/anthropic@2.0.105",
+        "npm:@ai-sdk/gateway@2.0.157",
+        "npm:@ai-sdk/google@2.0.99",
+        "npm:@ai-sdk/openai@2.0.129",
         "npm:@types/node@^26.4.1",
-        "npm:ai@5",
+        "npm:ai@5.0.265",
         "npm:typescript@5.9",
         "npm:vitest@^3.2.0"
       ]

@@ -4,10 +4,11 @@
     "@dlusn/ai/speech": "./src/speech/index.ts",
     "@dlusn/ai/stub": "./src/stub.ts",
     "@dlusn/ai/pricing": "./src/pricing.ts",
-    "ai": "npm:ai@^5.0.0",
-    "@ai-sdk/anthropic": "npm:@ai-sdk/anthropic@^2.0.0",
-    "@ai-sdk/openai": "npm:@ai-sdk/openai@^2.0.0",
-    "@ai-sdk/google": "npm:@ai-sdk/google@^2.0.0"
+    "ai": "npm:ai@5.0.265",
+    "@ai-sdk/anthropic": "npm:@ai-sdk/anthropic@2.0.105",
+    "@ai-sdk/openai": "npm:@ai-sdk/openai@2.0.129",
+    "@ai-sdk/google": "npm:@ai-sdk/google@2.0.99",
+    "@ai-sdk/gateway": "npm:@ai-sdk/gateway@2.0.157"
   },
   "compilerOptions": {
     "lib": ["deno.window", "dom"],
