@@ -198,7 +198,7 @@ export async function complete(req: LlmRequest): Promise<LlmResult> {
       })(),
     });
 
-    const toolUses = result.toolCalls.map((call) => ({ name: call.toolName, input: call.input }));
+    const toolUses = result.toolCalls.map((call) => ({ id: call.toolCallId, name: call.toolName, input: call.input }));
     return {
       text: result.text,
       toolUses,
@@ -220,7 +220,7 @@ export async function* stream(req: LlmRequest): AsyncIterable<LlmChunk> {
   if (resolved.targets[0]?.provider === 'stub') {
     const result = stubComplete({ ...resolved, ...resolved.targets[0] }, req, 'stream');
     if (result.text) yield { type: 'text', text: result.text };
-    for (const use of result.toolUses) yield { type: 'tool', name: use.name, input: use.input };
+    for (const use of result.toolUses) yield { type: 'tool', id: use.id, name: use.name, input: use.input };
     yield { type: 'done', result };
     return;
   }
@@ -248,7 +248,7 @@ export async function* stream(req: LlmRequest): AsyncIterable<LlmChunk> {
     for (let step = first; !step.done; step = await iterator.next()) {
       const part = step.value;
       if (part.type === 'text-delta') yield { type: 'text', text: part.text };
-      else if (part.type === 'tool-call') yield { type: 'tool', name: part.toolName, input: part.input };
+      else if (part.type === 'tool-call') yield { type: 'tool', id: part.toolCallId, name: part.toolName, input: part.input };
       else if (part.type === 'error') throw part.error;
     }
 
@@ -259,7 +259,7 @@ export async function* stream(req: LlmRequest): AsyncIterable<LlmChunk> {
       handle.toolCalls,
       handle.providerMetadata,
     ]);
-    const toolUses = toolCalls.map((call) => ({ name: call.toolName, input: call.input }));
+    const toolUses = toolCalls.map((call) => ({ id: call.toolCallId, name: call.toolName, input: call.input }));
     yield {
       type: 'done',
       result: {

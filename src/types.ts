@@ -34,8 +34,37 @@ export type LlmImagePart = {
   url?: string;
 };
 
-export type LlmPart = LlmTextPart | LlmImagePart;
+/**
+ * One tool call the model asked for, replayed back to it on a later turn.
+ * `id` is what the matching tool_result points at, so a loop that runs several
+ * turns keeps every call paired with its own answer.
+ */
+export type LlmToolUsePart = {
+  type: 'tool_use';
+  id: string;
+  name: string;
+  input: unknown;
+};
 
+/**
+ * The answer to one tool_use. It rides a user turn, because that is the turn a
+ * caller owns: the seam moves it to whatever role the vendor wants.
+ */
+export type LlmToolResultPart = {
+  type: 'tool_result';
+  /** The id of the tool_use this answers. */
+  toolUseId: string;
+  content: string | LlmPart[];
+  /** The tool failed. The seam tells the model so, rather than passing a string. */
+  isError?: boolean;
+};
+
+export type LlmPart = LlmTextPart | LlmImagePart | LlmToolUsePart | LlmToolResultPart;
+
+/**
+ * Assistant turns may carry text and tool_use parts, user turns text, image and
+ * tool_result parts. A caller that never sends a tool part sees v0.2 behaviour.
+ */
 export type LlmMessage = {
   role: 'user' | 'assistant';
   content: string | LlmPart[];
@@ -78,7 +107,12 @@ export type LlmStopReason = 'end' | 'max_tokens' | 'tool_use' | 'other';
 
 export type LlmResult = {
   text: string;
-  toolUses: { name: string; input: unknown }[];
+  /**
+   * `id` is the provider's own call id where it has one, and a generated id
+   * where it has none. Either way it is stable inside one result, so feeding it
+   * straight back as a tool_use part's id round trips.
+   */
+  toolUses: { id: string; name: string; input: unknown }[];
   stopReason: LlmStopReason;
   usage: LlmUsage;
   /** The provider that answered. */
@@ -92,7 +126,7 @@ export type LlmObjectResult<T> = LlmResult & { object: T };
 
 export type LlmChunk =
   | { type: 'text'; text: string }
-  | { type: 'tool'; name: string; input: unknown }
+  | { type: 'tool'; id: string; name: string; input: unknown }
   | { type: 'done'; result: LlmResult };
 
 export type LlmErrorKind =
