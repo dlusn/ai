@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { LlmError } from '../src/errors.ts';
-import { REGISTRY, ROLE_TIERS, resolveModel, rowFor } from '../src/registry.ts';
+import { REGISTRY, ROLE_TIERS, ROWS, resolveModel, rowFor } from '../src/registry.ts';
 import { LLM_ROLES, type LlmProvider, type LlmRole, type LlmTier } from '../src/types.ts';
 import { clearEnv, setEnv } from './env.ts';
 
@@ -121,6 +121,7 @@ describe('registry rows', () => {
         expect(Object.keys(row.capabilities).sort()).toEqual([
           'caching',
           'contextTokens',
+          'documents',
           'maxOutput',
           'structuredOutput',
           'thinking',
@@ -128,6 +129,8 @@ describe('registry rows', () => {
           'vision',
         ]);
         expect(row.price.output).toBeGreaterThanOrEqual(row.price.input);
+        expect(row.expectedCacheDiscount).toBeGreaterThanOrEqual(0);
+        expect(row.expectedCacheDiscount).toBeLessThanOrEqual(1);
       }
     }
   });
@@ -136,5 +139,34 @@ describe('registry rows', () => {
     expect(rowFor('anthropic', 'claude-sonnet-5')?.capabilities.caching).toBe(true);
     expect(rowFor('anthropic', 'not-a-model')).toBeUndefined();
     expect(rowFor('nowhere', 'anything')).toBeUndefined();
+  });
+
+  it('keeps the published cache read price and the expected discount in step', () => {
+    for (const candidate of ROWS) {
+      if (candidate.price.cacheRead === 0) continue;
+      const implied = candidate.price.input * (1 - candidate.expectedCacheDiscount);
+      expect(candidate.price.cacheRead).toBeCloseTo(implied, 6);
+    }
+  });
+
+  it('prices the models added in v0.2 from the vendor pages', () => {
+    expect(rowFor('openai', 'gpt-6-astra')?.price).toEqual({ input: 10, output: 50, cacheRead: 1, cacheWrite: 0 });
+    expect(rowFor('openai', 'gpt-6-sol')?.price).toEqual({ input: 2, output: 10, cacheRead: 0.2, cacheWrite: 0 });
+    expect(rowFor('openai', 'gpt-6-luna')?.price).toEqual({ input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0 });
+    expect(rowFor('google', 'gemini-3.8-flash')?.price.input).toBe(0.75);
+    expect(rowFor('openai-compatible', 'Qwen/Qwen3.6-27B')?.price).toEqual({
+      input: 0.32,
+      output: 3.2,
+      cacheRead: 0,
+      cacheWrite: 0,
+    });
+    // Every row says whether it takes a document part, none of them guess.
+    for (const candidate of ROWS) expect(typeof candidate.capabilities.documents).toBe('boolean');
+  });
+
+  it('never makes the gateway a default', () => {
+    expect(REGISTRY.gateway).toEqual({ fast: null, standard: null, best: null });
+    setEnv({ LLM_PROVIDER: 'gateway', AI_GATEWAY_API_KEY: 'k' });
+    expect(() => resolveModel('chat')).toThrowError(/LLM_MODEL/);
   });
 });
