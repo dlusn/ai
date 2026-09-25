@@ -18,28 +18,28 @@ function result(over: Partial<LlmResult> = {}): LlmResult {
 
 describe('costOf', () => {
   it('bills a million of each at the registry rate', () => {
-    // Sonnet is 3 in and 15 out per million.
-    expect(costOf(result())).toBeCloseTo(18, 10);
+    // Sonnet 5 is 2 in and 10 out per million.
+    expect(costOf(result())).toBeCloseTo(12, 10);
   });
 
   it('bills cache reads and cache writes separately', () => {
     const usd = costOf(
       result({ usage: { input: 0, output: 0, cacheRead: 2_000_000, cacheWrite: 1_000_000 } }),
     );
-    // 2 million cache reads at 0.30 plus 1 million cache writes at 3.75.
-    expect(usd).toBeCloseTo(0.6 + 3.75, 10);
+    // 2 million cache reads at 0.20 plus 1 million cache writes at 2.50.
+    expect(usd).toBeCloseTo(0.4 + 2.5, 10);
   });
 
   it('scales down to a realistic single call', () => {
     const usd = costOf(result({ usage: { input: 1_200, output: 340, cacheRead: 0, cacheWrite: 0 } }));
-    expect(usd).toBeCloseTo((1_200 * 3 + 340 * 15) / 1_000_000, 12);
+    expect(usd).toBeCloseTo((1_200 * 2 + 340 * 10) / 1_000_000, 12);
   });
 
   it('itemises the breakdown', () => {
     const breakdown = costBreakdown(result());
     expect(breakdown.priced).toBe(true);
-    expect(breakdown.input).toBeCloseTo(3, 10);
-    expect(breakdown.output).toBeCloseTo(15, 10);
+    expect(breakdown.input).toBeCloseTo(2, 10);
+    expect(breakdown.output).toBeCloseTo(10, 10);
     expect(breakdown.usd).toBeCloseTo(breakdown.input + breakdown.output, 10);
   });
 
@@ -142,7 +142,7 @@ describe('usageToCost', () => {
       cacheRead: 0,
       cacheWrite: 0,
     });
-    expect(breakdown.usd).toBeCloseTo(18, 10);
+    expect(breakdown.usd).toBeCloseTo(12, 10);
     expect(breakdown.priced).toBe(true);
   });
 
@@ -165,7 +165,7 @@ describe('usageToCost', () => {
       cacheRead: 1_000_000,
       cacheWrite: 0,
     });
-    expect(breakdown.input).toBeCloseTo(3, 10);
-    expect(breakdown.cacheRead).toBeCloseTo(0.3, 10);
+    expect(breakdown.input).toBeCloseTo(2, 10);
+    expect(breakdown.cacheRead).toBeCloseTo(0.2, 10);
   });
 });

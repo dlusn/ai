@@ -18,7 +18,7 @@ Closes the two silent failure gaps the L2 run found on cmd#47.
 | Contract test: one tool loop fixture through anthropic, openai, openai-compatible, google, gateway, stub | done |
 | Tests: 101 vitest cases, no live network | done |
 | Gates: `no-emdash`, `no-vendor-leak`, `tsc`, `deno check` | done |
-| Two stale anthropic tier default prices found, left for the owner | open, see DECISIONS |
+| Two stale anthropic tier default prices found, left for the owner | done 22:30, rows corrected to the vendor page |
 
 ## v0.2.0, 25 Sep 2026: card A2 shipped
 

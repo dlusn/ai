@@ -98,10 +98,12 @@ const GEMINI_CAPS = caps({
  * capabilities, so pinning it through LLM_MODEL_<ROLE> meters correctly.
  */
 export const ROWS: readonly RegistryRow[] = [
-  // Anthropic.
+  // Anthropic. Prices read 25 Sep 2026 from platform.claude.com/docs/en/about-claude/pricing:
+  // Sonnet 5 is 2/10 (the launch price became standard), Opus 5.5 is 4/20 with a
+  // 0.05x cache read, the rest 0.1x.
   row('anthropic', 'claude-haiku-4-5', { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25 }, ANTHROPIC_CAPS, 0.9),
-  row('anthropic', 'claude-sonnet-5', { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 }, ANTHROPIC_CAPS, 0.9),
-  row('anthropic', 'claude-opus-5-5', { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 }, ANTHROPIC_CAPS, 0.9),
+  row('anthropic', 'claude-sonnet-5', { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 }, ANTHROPIC_CAPS, 0.9),
+  row('anthropic', 'claude-opus-5-5', { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 5 }, ANTHROPIC_CAPS, 0.95),
 
   // Owner rule 25 Sep 2026: anthropic rows are the latest of each tier only
   // (fable 5.1, opus 5.5, sonnet 5, haiku 4.5). Consumers repoint older pins;
@@ -141,7 +143,7 @@ export const ROWS: readonly RegistryRow[] = [
   // Vercel AI Gateway. Model ids are vendor/model. The gateway bills the
   // vendor list price through, so these mirror the direct rows. Document input
   // is not brokered, so it books false whatever the vendor supports.
-  row('gateway', 'anthropic/claude-sonnet-5', { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 }, caps({ caching: true, thinking: true, contextTokens: 200_000, maxOutput: 64_000 }), 0.9),
+  row('gateway', 'anthropic/claude-sonnet-5', { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 }, caps({ caching: true, thinking: true, contextTokens: 200_000, maxOutput: 64_000 }), 0.9),
   row('gateway', 'openai/gpt-6-sol', { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 0 }, caps({ caching: true, thinking: true, contextTokens: 1_050_000, maxOutput: 128_000 }), 0.9),
   row('gateway', 'google/gemini-3.8-flash', { input: 0.75, output: 3.75, cacheRead: 0.075, cacheWrite: 0 }, caps({ caching: true, thinking: true, contextTokens: 1_000_000, maxOutput: 64_000 }), 0.9),
 
