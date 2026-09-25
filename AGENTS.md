@@ -69,3 +69,6 @@ npm run typecheck
 npm run deno:check
 npm run boot:proof
 ```
+
+## Banked lessons (distilled)
+- generic LLM_API_KEY checked before provider-specific env vars for every target in a fallback chain, so a mixed-provider chain (e.g. gateway/anthropic + anthropic) can silently misauth and defeat the fallback guarantee → README/docs must state LLM_API_KEY is global-generic; mixed-provider chains should set provider-specific keys (LLM_API_KEY_ANTHROPIC style etc) not the generic var
