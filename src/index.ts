@@ -3,5 +3,7 @@
 
 export { complete, completeObject, stream } from './core.ts';
 export { LlmError, isCapacityFailure, kindForStatus } from './errors.ts';
-export { REGISTRY, ROLE_TIERS, currentProvider, resolveModel, rowFor } from './registry.ts';
+export { breakerMs, breakerThreshold, resetBreakers } from './breaker.ts';
+export { setLlmLogger } from './log.ts';
+export { REGISTRY, ROLE_TIERS, ROWS, currentProvider, resolveModel, rowFor, targetKey } from './registry.ts';
 export * from './types.ts';

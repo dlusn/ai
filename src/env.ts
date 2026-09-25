@@ -15,6 +15,14 @@ export function env(key: string): string | undefined {
   return undefined;
 }
 
+/** A numeric env var, or the default when it is unset or not a number. */
+export function envNumber(key: string, fallback: number): number {
+  const raw = env(key);
+  if (raw === undefined) return fallback;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
 /** First env var that is set, in order. */
 export function envFirst(...keys: string[]): string | undefined {
   for (const key of keys) {

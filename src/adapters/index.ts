@@ -2,6 +2,7 @@
 // request field is written. Call sites never see providerOptions.
 
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGateway } from '@ai-sdk/gateway';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import {
@@ -15,22 +16,71 @@ import {
 } from 'ai';
 
 import { LlmError, kindForStatus } from '../errors.ts';
-import type { LlmMessage, LlmProvider, LlmRequest, ResolvedModel } from '../types.ts';
+import type { LlmMessage, LlmProvider, LlmRequest, LlmTarget } from '../types.ts';
 
-/** Build the vendor model handle for a resolved role. */
-export function languageModel(resolved: ResolvedModel, modelId: string): LanguageModel {
-  const { provider, apiKey, baseURL } = resolved;
+/**
+ * Give up on a target that has not sent a first byte in `connectMs`. The abort
+ * lands before the SDK has parsed anything, so the chain can move on while the
+ * dead host is still deciding whether to answer.
+ */
+export function connectTimeoutFetch(connectMs: number, provider: string): typeof globalThis.fetch {
+  return (async (input: Parameters<typeof globalThis.fetch>[0], init?: RequestInit) => {
+    const controller = new AbortController();
+    const outer = init?.signal as AbortSignal | undefined;
+    const relay = () => controller.abort(outer?.reason);
+    if (outer) {
+      if (outer.aborted) relay();
+      else outer.addEventListener('abort', relay, { once: true });
+    }
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // Raced rather than left to the abort, because a host that accepts the
+    // socket and then says nothing never rejects on its own. A retryable
+    // LlmError, not a bare abort: the chain has to be able to tell "this host
+    // is dead" from "the caller cancelled".
+    const expiry = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(
+          new LlmError(`No first byte in ${connectMs}ms.`, {
+            kind: 'unavailable',
+            provider,
+            retryable: true,
+          }),
+        );
+      }, connectMs);
+    });
+
+    try {
+      // globalThis.fetch is read per call so a test double installed after the
+      // model handle was built still sees the request.
+      return await Promise.race([globalThis.fetch(input, { ...init, signal: controller.signal }), expiry]);
+    } finally {
+      clearTimeout(timer);
+      outer?.removeEventListener('abort', relay);
+    }
+  }) as typeof globalThis.fetch;
+}
+
+/** Build the vendor model handle for one chain target. */
+export function languageModel(target: LlmTarget, modelId: string, connectMs?: number): LanguageModel {
+  const { provider, apiKey, baseURL } = target;
+  const fetchOption = connectMs ? { fetch: connectTimeoutFetch(connectMs, provider) } : {};
   switch (provider) {
     case 'anthropic':
-      return createAnthropic({ apiKey, ...(baseURL ? { baseURL } : {}) })(modelId);
+      return createAnthropic({ apiKey, ...(baseURL ? { baseURL } : {}), ...fetchOption })(modelId);
     case 'openai':
-      return createOpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) })(modelId);
+      return createOpenAI({ apiKey, ...(baseURL ? { baseURL } : {}), ...fetchOption })(modelId);
     case 'openai-compatible':
-      // One compatible endpoint covers OpenRouter, Groq, Ollama, Mistral and
-      // anything else that speaks the chat completions shape.
-      return createOpenAI({ apiKey: apiKey ?? 'not-needed', baseURL }).chat(modelId);
+      // One compatible endpoint covers OpenRouter, Groq, Ollama, Mistral, a
+      // vLLM rig and anything else that speaks the chat completions shape.
+      // `.chat()` is deliberate: the bare factory defaults to the responses API.
+      return createOpenAI({ apiKey: apiKey ?? 'not-needed', baseURL, ...fetchOption }).chat(modelId);
     case 'google':
-      return createGoogleGenerativeAI({ apiKey, ...(baseURL ? { baseURL } : {}) })(modelId);
+      return createGoogleGenerativeAI({ apiKey, ...(baseURL ? { baseURL } : {}), ...fetchOption })(modelId);
+    case 'gateway':
+      // The broker. Model ids are vendor/model and the key is AI_GATEWAY_API_KEY.
+      return createGateway({ apiKey, ...(baseURL ? { baseURL } : {}), ...fetchOption })(modelId);
     default:
       throw new LlmError(`Provider "${provider}" has no language model adapter.`, {
         kind: 'bad_request',
@@ -90,9 +140,19 @@ export function toProviderOptions(
   provider: LlmProvider,
   req: LlmRequest,
   supports: { caching: boolean; thinking: boolean },
+  modelId = '',
 ): Record<string, Record<string, JSONValue>> | undefined {
   const thinkingBudget = typeof req.thinking === 'object' ? req.thinking.budgetTokens : undefined;
   const wantsThinking = req.thinking === true || typeof req.thinking === 'object';
+
+  if (provider === 'gateway') {
+    // The broker forwards a namespaced options block to whatever vendor the
+    // `vendor/model` id names, so reuse that vendor's branch verbatim.
+    const vendor = modelId.split('/')[0] ?? '';
+    const known: LlmProvider[] = ['anthropic', 'openai', 'google'];
+    if (!known.includes(vendor as LlmProvider)) return undefined;
+    return toProviderOptions(vendor as LlmProvider, req, supports);
+  }
 
   if (provider === 'anthropic') {
     const options: Record<string, JSONValue> = {};
@@ -150,6 +210,18 @@ export function toLlmError(error: unknown, provider: string): LlmError {
       status,
       provider,
       retryable: error.isRetryable,
+      cause: error,
+    });
+  }
+  // The gateway throws its own error class, not APICallError, but it carries
+  // the same two fields. Duck type rather than import six error classes.
+  const withStatus = error as { statusCode?: unknown; isRetryable?: unknown; message?: unknown };
+  if (typeof withStatus?.statusCode === 'number') {
+    return new LlmError(String(withStatus.message ?? 'gateway error'), {
+      kind: kindForStatus(withStatus.statusCode),
+      status: withStatus.statusCode,
+      provider,
+      ...(typeof withStatus.isRetryable === 'boolean' ? { retryable: withStatus.isRetryable } : {}),
       cause: error,
     });
   }
