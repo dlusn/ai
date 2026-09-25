@@ -1,5 +1,25 @@
 # PROGRESS
 
+## v0.3.0, 25 Sep 2026: card A3 shipped
+
+Closes the two silent failure gaps the L2 run found on cmd#47.
+
+| Step | State |
+|---|---|
+| `LlmToolUsePart` and `LlmToolResultPart` on `LlmPart`, assistant text plus tool_use, user tool_result | done |
+| `LlmResult.toolUses[].id`, the provider's call id or a generated one | done |
+| `LlmChunk` tool chunks carry the same id, so a streamed loop replays too | done |
+| `toModelMessages` maps both parts on every adapter, tool_result to its own tool role message | done |
+| An orphaned `tool_result` throws `bad_request` before any network work | done |
+| `isError` maps to the vendor error output, not to ordinary text | done |
+| Stub echoes the newest tool_result it was handed, so a loop proves without a vendor key | done |
+| Anthropic rows for fable-5-1, fable-5, opus-5, opus-4-8, opus-4-7, sonnet-4-6 | done |
+| Unknown pair still meters zero, now logs `llm.unpriced` once per isolate | done |
+| Contract test: one tool loop fixture through anthropic, openai, openai-compatible, google, gateway, stub | done |
+| Tests: 101 vitest cases, no live network | done |
+| Gates: `no-emdash`, `no-vendor-leak`, `tsc`, `deno check` | done |
+| Two stale anthropic tier default prices found, left for the owner | open, see DECISIONS |
+
 ## v0.2.0, 25 Sep 2026: card A2 shipped
 
 | Step | State |

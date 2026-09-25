@@ -23,6 +23,25 @@ const PER_MILLION = 1_000_000;
 
 const NOTHING: CostBreakdown = { usd: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0, priced: false };
 
+const warnedPairs = new Set<string>();
+
+/**
+ * An unpriced pair meters as zero, which silently turns a consumer's daily
+ * spend cap into a no-op. Zero is still the answer, because throwing in a
+ * request path is worse, but the pair gets named out loud once per isolate so
+ * the gap shows up in logs instead of in a month of free looking spend.
+ */
+function warnUnpriced(provider: string, model: string): void {
+  const pair = `${provider}/${model}`;
+  if (warnedPairs.has(pair)) return;
+  warnedPairs.add(pair);
+  try {
+    console.warn(JSON.stringify({ event: 'llm.unpriced', target: pair }));
+  } catch {
+    // ponytail: swallowed on purpose, a log line is not in the request contract
+  }
+}
+
 /**
  * USD per million for a cached input token. The published cache read price
  * where the vendor has one, otherwise the input price less the row's expected
@@ -56,6 +75,7 @@ export function usageToCost(
 ): CostBreakdown {
   const row = rowFor(provider, model);
   if (!row) {
+    warnUnpriced(provider, model);
     options.onUnpriced?.({ provider, model, usage });
     return NOTHING;
   }

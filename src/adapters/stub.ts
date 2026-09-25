@@ -2,14 +2,15 @@
 // the caller. Every verify script and gate runs on this.
 
 import { LlmError } from '../errors.ts';
-import type { LlmRequest, LlmResult, LlmRole, ResolvedModel } from '../types.ts';
+import type { LlmRequest, LlmResult, LlmRole, LlmToolResultPart, ResolvedModel } from '../types.ts';
 
 /** What a caller can hand back for a role. A bare string means text only. */
 export type StubFixture =
   | string
   | {
       text?: string;
-      toolUses?: { name: string; input: unknown }[];
+      /** `id` is optional: without one the stub numbers the calls in order. */
+      toolUses?: { id?: string; name: string; input: unknown }[];
       stopReason?: LlmResult['stopReason'];
       usage?: Partial<LlmResult['usage']>;
       /** Throw instead of answering, to exercise fallback and error paths. */
@@ -39,6 +40,32 @@ export function resetStub(): void {
   calls = [];
 }
 
+/** The newest tool_result the caller sent, searching backwards. */
+function lastToolResult(req: LlmRequest): LlmToolResultPart | undefined {
+  for (let i = req.messages.length - 1; i >= 0; i -= 1) {
+    const content = req.messages[i]!.content;
+    if (typeof content === 'string') continue;
+    for (let j = content.length - 1; j >= 0; j -= 1) {
+      const part = content[j]!;
+      if (part.type === 'tool_result') return part;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * What the stub says back when it was handed a tool result. Echoing it is what
+ * lets a contract test prove a whole tool loop without a vendor key: a stub
+ * that ignored the result would pass a broken round trip just as happily.
+ */
+function toolResultEcho(part: LlmToolResultPart): string {
+  const body =
+    typeof part.content === 'string'
+      ? part.content
+      : part.content.map((inner) => (inner.type === 'text' ? inner.text : `[${inner.type}]`)).join('');
+  return `tool_result ${part.toolUseId}: ${body}`;
+}
+
 export function stubComplete(
   resolved: ResolvedModel,
   req: LlmRequest,
@@ -57,8 +84,13 @@ export function stubComplete(
   const spec = typeof fixture === 'string' ? { text: fixture } : fixture;
   if (spec.error) throw spec.error;
 
-  const text = spec.text ?? '';
-  const toolUses = spec.toolUses ?? [];
+  const echo = lastToolResult(req);
+  const text = [spec.text ?? '', echo ? toolResultEcho(echo) : ''].filter(Boolean).join(' ');
+  const toolUses = (spec.toolUses ?? []).map((use, index) => ({
+    id: use.id ?? `stub_tool_${index + 1}`,
+    name: use.name,
+    input: use.input,
+  }));
   return {
     text,
     toolUses,

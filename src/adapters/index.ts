@@ -12,11 +12,20 @@ import {
   type LanguageModel,
   type JSONValue,
   type ModelMessage,
+  type ToolResultPart,
   type ToolSet,
 } from 'ai';
 
 import { LlmError, kindForStatus } from '../errors.ts';
-import type { LlmMessage, LlmProvider, LlmRequest, LlmTarget } from '../types.ts';
+import type {
+  LlmMessage,
+  LlmPart,
+  LlmProvider,
+  LlmRequest,
+  LlmTarget,
+  LlmTextPart,
+  LlmToolResultPart,
+} from '../types.ts';
 
 /**
  * Give up on a target that has not sent a first byte in `connectMs`. The abort
@@ -89,29 +98,125 @@ export function languageModel(target: LlmTarget, modelId: string, connectMs?: nu
   }
 }
 
-/** Contract messages to AI SDK messages. Images become vendor parts here. */
+function badPart(message: string): LlmError {
+  return new LlmError(message, { kind: 'bad_request', provider: 'none' });
+}
+
+/** A user facing part: text or an image. */
+function toUserPart(part: LlmPart) {
+  if (part.type === 'text') return { type: 'text' as const, text: part.text };
+  if (part.type === 'image') {
+    if (part.base64) {
+      return { type: 'image' as const, image: part.base64, mediaType: part.mime ?? 'image/jpeg' };
+    }
+    if (part.url) {
+      return { type: 'image' as const, image: new URL(part.url), ...(part.mime ? { mediaType: part.mime } : {}) };
+    }
+    throw badPart('An image part needs base64 or url.');
+  }
+  throw badPart(`A user turn carries text, image and tool_result parts only, not "${part.type}".`);
+}
+
+/** An assistant facing part: text or a tool call. */
+function toAssistantPart(part: LlmPart) {
+  if (part.type === 'text') return { type: 'text' as const, text: part.text };
+  if (part.type === 'tool_use') {
+    return { type: 'tool-call' as const, toolCallId: part.id, toolName: part.name, input: part.input };
+  }
+  throw badPart(`An assistant turn carries text and tool_use parts only, not "${part.type}".`);
+}
+
+/** The inside of a tool_result that arrived as parts rather than a string. */
+function toToolContentPart(part: LlmPart) {
+  if (part.type === 'text') return { type: 'text' as const, text: part.text };
+  if (part.type === 'image' && part.base64) {
+    return { type: 'media' as const, data: part.base64, mediaType: part.mime ?? 'image/jpeg' };
+  }
+  throw badPart('A tool_result part array carries text and base64 image parts only.');
+}
+
+function toToolOutput(part: LlmToolResultPart): ToolResultPart['output'] {
+  if (typeof part.content === 'string') {
+    return part.isError ? { type: 'error-text', value: part.content } : { type: 'text', value: part.content };
+  }
+  // A failed tool goes over as JSON rather than being flattened to a string,
+  // because the model reads the failure better with its shape intact.
+  if (part.isError) return { type: 'error-json', value: part.content as unknown as JSONValue };
+  return { type: 'content', value: part.content.map(toToolContentPart) };
+}
+
+/**
+ * The AI SDK tool result part wants the tool's name as well as the call id, and
+ * the contract part carries only the id. Recover the name from the tool_use the
+ * id points at, which is in the same conversation by definition.
+ */
+function toolNamesById(messages: LlmMessage[]): Map<string, string> {
+  const names = new Map<string, string>();
+  for (const message of messages) {
+    if (typeof message.content === 'string') continue;
+    for (const part of message.content) {
+      if (part.type === 'tool_use') names.set(part.id, part.name);
+    }
+  }
+  return names;
+}
+
+function isToolResult(part: LlmPart): part is LlmToolResultPart {
+  return part.type === 'tool_result';
+}
+
+function allText(parts: LlmPart[]): parts is LlmTextPart[] {
+  return parts.every((part) => part.type === 'text');
+}
+
+/**
+ * Contract messages to AI SDK messages. Images, tool calls and tool results all
+ * become vendor parts here. A tool_result is its own role in the AI SDK shape,
+ * so one contract turn can split into a tool message and a user message, in
+ * that order: the vendors all want the answer before whatever the caller said
+ * about it.
+ */
 export function toModelMessages(messages: LlmMessage[]): ModelMessage[] {
-  return messages.map((message) => {
+  const names = toolNamesById(messages);
+  const out: ModelMessage[] = [];
+
+  for (const message of messages) {
     if (typeof message.content === 'string') {
-      return { role: message.role, content: message.content } as ModelMessage;
+      out.push({ role: message.role, content: message.content } as ModelMessage);
+      continue;
     }
-    const parts = message.content.map((part) => {
-      if (part.type === 'text') return { type: 'text' as const, text: part.text };
-      if (part.base64) {
-        return { type: 'image' as const, image: part.base64, mediaType: part.mime ?? 'image/jpeg' };
-      }
-      if (part.url) {
-        return { type: 'image' as const, image: new URL(part.url), ...(part.mime ? { mediaType: part.mime } : {}) };
-      }
-      throw new LlmError('An image part needs base64 or url.', { kind: 'bad_request', provider: 'none' });
-    });
+
+    const results = message.content.filter(isToolResult);
+    if (results.length) {
+      out.push({
+        role: 'tool',
+        content: results.map((part) => {
+          const toolName = names.get(part.toolUseId);
+          if (!toolName) {
+            throw badPart(
+              `tool_result "${part.toolUseId}" has no matching tool_use earlier in the conversation.`,
+            );
+          }
+          return { type: 'tool-result', toolCallId: part.toolUseId, toolName, output: toToolOutput(part) };
+        }),
+      });
+    }
+
+    const rest = message.content.filter((part) => !isToolResult(part));
+    if (rest.length === 0) continue;
+
     if (message.role === 'assistant') {
-      // Assistant turns carry text only in this contract.
-      const text = parts.map((p) => ('text' in p ? p.text : '')).join('');
-      return { role: 'assistant', content: text } as ModelMessage;
+      // A text only assistant turn stays a plain string, exactly as it was
+      // before tool parts existed, so no v0.2 caller sees a new wire shape.
+      const content = allText(rest) ? rest.map((part) => part.text).join('') : rest.map(toAssistantPart);
+      out.push({ role: 'assistant', content } as ModelMessage);
+      continue;
     }
-    return { role: 'user', content: parts } as ModelMessage;
-  });
+
+    out.push({ role: 'user', content: rest.map(toUserPart) } as ModelMessage);
+  }
+
+  return out;
 }
 
 export function toToolSet(tools: LlmRequest['tools']): ToolSet | undefined {
