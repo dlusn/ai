@@ -174,3 +174,55 @@ Full list in `DECISIONS.md`. Three that change behaviour:
 - **`npm run typecheck` uses `tsc` from devDependencies.** `exactOptionalPropertyTypes`
   is off because the AI SDK's public types are not written for it. The rest of
   strict, including `noUncheckedIndexedAccess`, is on.
+
+## A1b, 25 Sep 2026: keyless openai-compatible
+
+Finisher for the one defect CTO review blocked #1 on: `resolveModel` threw on
+a missing API key even for `LLM_PROVIDER=openai-compatible`, so Ollama, LM
+Studio and vLLM could not run keyless despite the adapter already sending a
+placeholder key for that path.
+
+### What changed
+
+1. `git merge origin/agent/f40e7ea3` (fast-forward onto the skeleton). Nothing
+   from #1 was rebuilt.
+2. `src/registry.ts`, `resolveModel`: the missing-key throw now also skips
+   when `provider === 'openai-compatible' && baseURL` is set, alongside the
+   existing `stub` skip. `anthropic`, `openai` and `google` are unchanged and
+   still throw `No API key for provider "..."` at resolve time.
+3. `test/result-shape.test.ts` (the contract test), two new cases:
+   `openai-compatible` with `LLM_BASE_URL` and no key resolves and reaches the
+   fake transport with the full contract shape; `anthropic` with no key still
+   throws before the fake transport is ever called.
+4. `PROGRESS.md`: one line under a new heading.
+
+No new dependency, no API change. `src/adapters/index.ts:31` already sent
+`apiKey ?? 'not-needed'` for `openai-compatible`, so only the resolve-time
+guard needed the fix.
+
+### Files
+
+`src/registry.ts`, `test/result-shape.test.ts`, `PROGRESS.md`.
+
+### Commits
+
+`27fdcb2` fix: keyless openai-compatible mode (Closes #1), on top of the
+fast-forwarded `74e014b`, `88f2888`, `8b3287c` from `origin/agent/f40e7ea3`.
+
+### Verify
+
+```
+$ npm test            # no-emdash, no-vendor-leak, vitest: 7 files, 56 passed
+$ npm run typecheck    # tsc --noEmit, clean
+$ npm run deno:check   # deno check, 0 errors
+$ grep -rln "api.anthropic.com\|@anthropic-ai\|claude-\|gpt-\|gemini-" src
+src/registry.ts   # unchanged from #1, still the only file with a vendor model id
+```
+
+### Acceptance
+
+- The CTO block sentence is now false: `openai-compatible` runs with no key
+  when `LLM_BASE_URL` is set, covered by the new contract test case.
+- Every other #1 acceptance line still holds (all gates above pass, acceptance
+  grep unchanged).
+- No em or en dash in the diff (`no-emdash` gate passed on the full repo).
