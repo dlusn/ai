@@ -1,0 +1,5 @@
+node_modules/
+.impeccable/
+.dispatch/
+*.log
+.DS_Store
