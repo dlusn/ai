@@ -91,12 +91,10 @@ describe('the cache discount', () => {
 });
 
 describe('the ids DLUSN consumers pin', () => {
-  // cmd runs these three today. Before v0.3 they had no row, so every call on
-  // them metered zero and the daily spend cap never moved.
+  // Owner rule 25 Sep 2026: latest id per tier only. fable 5.1 had no row
+  // before v0.3, so every cmd chat call metered zero and the daily cap never moved.
   const PINNED: [string, { input: number; output: number; cacheRead: number; cacheWrite: number }][] = [
     ['claude-fable-5-1', { input: 10, output: 50, cacheRead: 0.25, cacheWrite: 12.5 }],
-    ['claude-opus-5', { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 }],
-    ['claude-sonnet-4-6', { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 }],
   ];
 
   for (const [model, price] of PINNED) {

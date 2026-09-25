@@ -103,22 +103,15 @@ export const ROWS: readonly RegistryRow[] = [
   row('anthropic', 'claude-sonnet-5', { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 }, ANTHROPIC_CAPS, 0.9),
   row('anthropic', 'claude-opus-5-5', { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 }, ANTHROPIC_CAPS, 0.9),
 
-  // Anthropic ids a DLUSN consumer pins today but no tier defaults to, so an
-  // unpinned role never lands here. cmd runs fable 5.1 for chat, opus 5 for
-  // draft and sonnet 4.6 for vision, extract and triage; the rest are here so a
-  // stored usage row from an older message still prices instead of metering
-  // zero and quietly turning a daily spend cap into a no-op.
+  // Owner rule 25 Sep 2026: anthropic rows are the latest of each tier only
+  // (fable 5.1, opus 5.5, sonnet 5, haiku 4.5). Consumers repoint older pins;
+  // no rows for older ids, an unknown id meters zero and warns once.
   //
   // Prices read 25 Sep 2026 from claude.com/pricing and from
   // platform.claude.com/docs/en/about-claude/pricing, which agree. Cache reads
   // are 0.025x input on fable 5.1 and 0.1x on the rest, which is why the
   // expected discount below is not one number for the whole vendor.
   row('anthropic', 'claude-fable-5-1', { input: 10, output: 50, cacheRead: 0.25, cacheWrite: 12.5 }, ANTHROPIC_CAPS, 0.975),
-  row('anthropic', 'claude-fable-5', { input: 10, output: 50, cacheRead: 1, cacheWrite: 12.5 }, ANTHROPIC_CAPS, 0.9),
-  row('anthropic', 'claude-opus-5', { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 }, ANTHROPIC_CAPS, 0.9),
-  row('anthropic', 'claude-opus-4-8', { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 }, ANTHROPIC_CAPS, 0.9),
-  row('anthropic', 'claude-opus-4-7', { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 }, ANTHROPIC_CAPS, 0.9),
-  row('anthropic', 'claude-sonnet-4-6', { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 }, ANTHROPIC_CAPS, 0.9),
 
   // OpenAI GPT-5, still the tier defaults.
   row('openai', 'gpt-5-nano', { input: 0.05, output: 0.4, cacheRead: 0.005, cacheWrite: 0 }, OPENAI_5_CAPS, 0.9),

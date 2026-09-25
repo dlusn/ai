@@ -13,7 +13,7 @@ Closes the two silent failure gaps the L2 run found on cmd#47.
 | An orphaned `tool_result` throws `bad_request` before any network work | done |
 | `isError` maps to the vendor error output, not to ordinary text | done |
 | Stub echoes the newest tool_result it was handed, so a loop proves without a vendor key | done |
-| Anthropic rows for fable-5-1, fable-5, opus-5, opus-4-8, opus-4-7, sonnet-4-6 | done |
+| Anthropic row for fable-5-1 (latest id per tier only, owner rule 25 Sep) | done |
 | Unknown pair still meters zero, now logs `llm.unpriced` once per isolate | done |
 | Contract test: one tool loop fixture through anthropic, openai, openai-compatible, google, gateway, stub | done |
 | Tests: 101 vitest cases, no live network | done |
