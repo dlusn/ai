@@ -30,6 +30,95 @@ afterEach(() => {
   clearEnv();
 });
 
+const EXPECTED = { food: 'oats', grams: 120 };
+const AS_JSON = JSON.stringify(EXPECTED);
+
+// One fixture, every adapter, one parsed object. Each vendor answers a
+// structured request in its own shape and no call site ever sees which.
+const ADAPTERS: { name: string; env: Record<string, string>; reply: unknown; model: string; provider: string }[] = [
+  {
+    name: 'anthropic, as a forced tool call',
+    env: { LLM_PROVIDER: 'anthropic', LLM_API_KEY: 'k' },
+    provider: 'anthropic',
+    model: 'claude-haiku-4-5',
+    reply: {
+      id: 'msg_o',
+      type: 'message',
+      role: 'assistant',
+      model: 'claude-haiku-4-5',
+      content: [{ type: 'tool_use', id: 'tu', name: 'json', input: EXPECTED }],
+      stop_reason: 'tool_use',
+      usage: { input_tokens: 90, output_tokens: 12 },
+    },
+  },
+  {
+    name: 'openai-compatible, as a JSON body',
+    env: {
+      LLM_PROVIDER: 'openai-compatible',
+      LLM_BASE_URL: 'https://models.internal.test/v1',
+      LLM_MODEL_EXTRACT: 'house-model-1',
+    },
+    provider: 'openai-compatible',
+    model: 'house-model-1',
+    reply: {
+      id: 'chatcmpl_o',
+      object: 'chat.completion',
+      created: 1_759_000_000,
+      model: 'house-model-1',
+      choices: [{ index: 0, message: { role: 'assistant', content: AS_JSON }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 90, completion_tokens: 12, total_tokens: 102 },
+    },
+  },
+  {
+    name: 'google, as a JSON part',
+    env: { LLM_PROVIDER: 'google', GOOGLE_API_KEY: 'k' },
+    provider: 'google',
+    model: 'gemini-2.5-flash-lite',
+    reply: {
+      candidates: [{ content: { parts: [{ text: AS_JSON }], role: 'model' }, finishReason: 'STOP', index: 0 }],
+      usageMetadata: { promptTokenCount: 90, candidatesTokenCount: 12, totalTokenCount: 102 },
+    },
+  },
+  {
+    name: 'gateway, brokered',
+    env: { LLM_PROVIDER: 'gateway', AI_GATEWAY_API_KEY: 'gw', LLM_MODEL_EXTRACT: 'openai/gpt-6-sol' },
+    provider: 'gateway',
+    model: 'openai/gpt-6-sol',
+    reply: {
+      content: [{ type: 'text', text: AS_JSON }],
+      finishReason: 'stop',
+      usage: { inputTokens: 90, outputTokens: 12 },
+      warnings: [],
+    },
+  },
+];
+
+describe('completeObject through every adapter', () => {
+  for (const adapter of ADAPTERS) {
+    it(adapter.name, async () => {
+      setEnv(adapter.env);
+      const fake = fakeFetch(() => jsonResponse(adapter.reply));
+      restore = fake.restore;
+
+      const result = await completeObject<typeof EXPECTED>(REQUEST, SCHEMA);
+
+      expect(result.object).toEqual(EXPECTED);
+      expect(result.text).toBe(AS_JSON);
+      expect(result.provider).toBe(adapter.provider);
+      expect(result.model).toBe(adapter.model);
+      expect(result.usage).toEqual({ input: 90, output: 12, cacheRead: 0, cacheWrite: 0 });
+    });
+  }
+
+  it('stub', async () => {
+    setEnv({ LLM_PROVIDER: 'stub' });
+    setStubFixtures({ extract: AS_JSON });
+    const result = await completeObject<typeof EXPECTED>(REQUEST, SCHEMA);
+    expect(result.object).toEqual(EXPECTED);
+    expect(result.provider).toBe('stub');
+  });
+});
+
 describe('completeObject', () => {
   it('parses the object out of a recorded vendor reply', async () => {
     setEnv({ LLM_PROVIDER: 'anthropic', LLM_API_KEY: 'k' });

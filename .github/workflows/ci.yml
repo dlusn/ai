@@ -26,7 +26,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno check --config deno.json fixtures/deno-check.ts fixtures/edge-function.ts
+      - run: npm run deno:check
+      # Boots the edge function fixture in a real Deno process and puts one
+      # request through it, on the stub provider, so no key and no cost.
+      - run: npm run boot:proof

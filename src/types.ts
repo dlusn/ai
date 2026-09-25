@@ -9,8 +9,19 @@ export const LLM_ROLES: readonly LlmRole[] = ['chat', 'draft', 'vision', 'extrac
 /** Cost and capability tiers the registry is keyed by. */
 export type LlmTier = 'fast' | 'standard' | 'best';
 
-/** Providers the package can resolve. `openai-compatible` needs LLM_BASE_URL. */
-export type LlmProvider = 'anthropic' | 'openai' | 'openai-compatible' | 'google' | 'stub';
+/**
+ * Providers the package can resolve. `openai-compatible` needs LLM_BASE_URL.
+ * `gateway` is the Vercel AI Gateway, a broker in front of many vendors. It is
+ * a target like any other and never a default: a health adjacent role pins a
+ * direct vendor instead.
+ */
+export type LlmProvider =
+  | 'anthropic'
+  | 'openai'
+  | 'openai-compatible'
+  | 'google'
+  | 'gateway'
+  | 'stub';
 
 export type LlmTextPart = { type: 'text'; text: string };
 
@@ -92,22 +103,44 @@ export type LlmErrorKind =
   | 'unavailable'
   | 'unknown';
 
-/** What resolveModel hands the adapter layer. */
-export type ResolvedModel = {
-  role: LlmRole;
-  tier: LlmTier;
+/**
+ * One entry in a role's fallback chain. A chain is an ordered list, primary
+ * first, parsed from LLM_MODELS_<ROLE>. Each entry carries its own key and base
+ * URL so a home rig and the same model hosted can sit in one chain.
+ */
+export type LlmTarget = {
   provider: LlmProvider;
   model: string;
-  /** LLM_FALLBACK_<ROLE>, used once on a capacity failure. */
-  fallback?: string;
   apiKey?: string;
   baseURL?: string;
   capabilities: LlmCapabilities;
 };
 
+/** What resolveModel hands the adapter layer. */
+export type ResolvedModel = {
+  role: LlmRole;
+  tier: LlmTier;
+  /** The whole chain, primary first. Never empty. */
+  targets: LlmTarget[];
+  /** The primary target, flattened. Same fields v0.1 exposed. */
+  provider: LlmProvider;
+  model: string;
+  /** The second entry's model id, when there is one. */
+  fallback?: string;
+  apiKey?: string;
+  baseURL?: string;
+  capabilities: LlmCapabilities;
+  /** Milliseconds to first byte before the seam gives up on a target. */
+  connectTimeoutMs: number;
+  /** Milliseconds for the whole attempt on one target. */
+  timeoutMs: number;
+};
+
 /** Capability names come from the ekoni ADR. */
 export type LlmCapabilities = {
   vision: boolean;
+  /** PDF or other document parts are accepted as input. */
+  documents: boolean;
   tools: boolean;
   structuredOutput: boolean;
   caching: boolean;
@@ -129,4 +162,26 @@ export type RegistryRow = {
   model: string;
   capabilities: LlmCapabilities;
   price: LlmPrice;
+  /**
+   * Share off the input price a cached input token gets on this row, 0 to 1.
+   * 0.9 means cached tokens bill at a tenth of the input price. A row whose
+   * vendor publishes no separate cache read price prices cached tokens from
+   * this number instead, so a consumer can forecast a cache before calling.
+   */
+  expectedCacheDiscount: number;
+};
+
+/** One line the seam emits when a chain hop or a breaker changes something. */
+export type LlmLogEvent = {
+  event: 'llm.fallback' | 'llm.breaker_open' | 'llm.breaker_skip' | 'llm.breaker_close';
+  role: LlmRole;
+  /** provider/model of the target the line is about. */
+  target: string;
+  /** provider/model of the next target, on a fallback hop. */
+  next?: string;
+  kind?: LlmErrorKind;
+  status?: number;
+  /** Milliseconds the failed attempt took. */
+  ms?: number;
+  reason?: string;
 };

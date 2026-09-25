@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { costBreakdown, costOf, priceFor } from '../src/pricing.ts';
+import { cacheReadRate, costBreakdown, costOf, priceFor, usageToCost } from '../src/pricing.ts';
+import { rowFor } from '../src/registry.ts';
 import type { LlmResult } from '../src/types.ts';
 
 function result(over: Partial<LlmResult> = {}): LlmResult {
@@ -63,5 +64,64 @@ describe('costOf', () => {
   it('exposes the price row', () => {
     expect(priceFor('openai', 'gpt-5')).toEqual({ input: 1.25, output: 10, cacheRead: 0.125, cacheWrite: 0 });
     expect(priceFor('openai', 'nope')).toBeUndefined();
+  });
+});
+
+describe('the cache discount', () => {
+  it('bills cached tokens at the published cache read price where there is one', () => {
+    const row = rowFor('openai', 'gpt-6-sol')!;
+    expect(row.expectedCacheDiscount).toBe(0.9);
+    expect(cacheReadRate(row)).toBe(0.2);
+  });
+
+  it('applies the discount to the input price where the vendor publishes no cache rate', () => {
+    // A compatible endpoint with no prompt cache: a cached token costs full input.
+    const qwen = rowFor('openai-compatible', 'Qwen/Qwen3.6-27B')!;
+    expect(qwen.expectedCacheDiscount).toBe(0);
+    expect(cacheReadRate(qwen)).toBe(qwen.price.input);
+
+    const usd = usageToCost('openai-compatible', 'Qwen/Qwen3.6-27B', {
+      input: 0,
+      output: 0,
+      cacheRead: 1_000_000,
+      cacheWrite: 0,
+    }).usd;
+    expect(usd).toBeCloseTo(0.32, 10);
+  });
+});
+
+describe('usageToCost', () => {
+  it('meters in currency without an LlmResult', () => {
+    const breakdown = usageToCost('anthropic', 'claude-sonnet-5', {
+      input: 1_000_000,
+      output: 1_000_000,
+      cacheRead: 0,
+      cacheWrite: 0,
+    });
+    expect(breakdown.usd).toBeCloseTo(18, 10);
+    expect(breakdown.priced).toBe(true);
+  });
+
+  it('books zero and calls the hook for a pair the registry has never seen', () => {
+    const seen: string[] = [];
+    const breakdown = usageToCost(
+      'gateway',
+      'someone/unknown-model',
+      { input: 10, output: 10, cacheRead: 0, cacheWrite: 0 },
+      { onUnpriced: (pair) => seen.push(`${pair.provider}/${pair.model}`) },
+    );
+    expect(breakdown).toEqual({ usd: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0, priced: false });
+    expect(seen).toEqual(['gateway/someone/unknown-model']);
+  });
+
+  it('prices a brokered call off the gateway row', () => {
+    const breakdown = usageToCost('gateway', 'anthropic/claude-sonnet-5', {
+      input: 1_000_000,
+      output: 0,
+      cacheRead: 1_000_000,
+      cacheWrite: 0,
+    });
+    expect(breakdown.input).toBeCloseTo(3, 10);
+    expect(breakdown.cacheRead).toBeCloseTo(0.3, 10);
   });
 });
