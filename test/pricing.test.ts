@@ -90,6 +90,52 @@ describe('the cache discount', () => {
   });
 });
 
+describe('the ids DLUSN consumers pin', () => {
+  // cmd runs these three today. Before v0.3 they had no row, so every call on
+  // them metered zero and the daily spend cap never moved.
+  const PINNED: [string, { input: number; output: number; cacheRead: number; cacheWrite: number }][] = [
+    ['claude-fable-5-1', { input: 10, output: 50, cacheRead: 0.25, cacheWrite: 12.5 }],
+    ['claude-opus-5', { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 }],
+    ['claude-sonnet-4-6', { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 }],
+  ];
+
+  for (const [model, price] of PINNED) {
+    it(`${model} has a row and meters nonzero`, () => {
+      expect(priceFor('anthropic', model)).toEqual(price);
+
+      const breakdown = usageToCost('anthropic', model, {
+        input: 10_000,
+        output: 2_000,
+        cacheRead: 5_000,
+        cacheWrite: 1_000,
+      });
+      expect(breakdown.priced).toBe(true);
+      expect(breakdown.usd).toBeGreaterThan(0);
+      expect(breakdown.usd).toBeCloseTo(
+        (10_000 * price.input + 2_000 * price.output + 5_000 * price.cacheRead + 1_000 * price.cacheWrite) /
+          1_000_000,
+        12,
+      );
+    });
+  }
+
+  it('warns once per isolate for an id it has never seen', () => {
+    const lines: string[] = [];
+    const original = console.warn;
+    console.warn = (line: unknown) => { lines.push(String(line)); };
+    try {
+      const usage = { input: 10, output: 10, cacheRead: 0, cacheWrite: 0 };
+      usageToCost('anthropic', 'claude-not-shipped-yet', usage);
+      usageToCost('anthropic', 'claude-not-shipped-yet', usage);
+    } finally {
+      console.warn = original;
+    }
+
+    expect(lines).toHaveLength(1);
+    expect(JSON.parse(lines[0]!)).toEqual({ event: 'llm.unpriced', target: 'anthropic/claude-not-shipped-yet' });
+  });
+});
+
 describe('usageToCost', () => {
   it('meters in currency without an LlmResult', () => {
     const breakdown = usageToCost('anthropic', 'claude-sonnet-5', {

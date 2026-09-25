@@ -203,7 +203,8 @@ describe('tools', () => {
     });
 
     expect(result.stopReason).toBe('tool_use');
-    expect(result.toolUses).toEqual([{ name: 'log_food', input: { food: 'oats', grams: 120 } }]);
+    // v0.3 adds the call id, which is what a later tool_result points back at.
+    expect(result.toolUses).toEqual([{ id: 'tu_1', name: 'log_food', input: { food: 'oats', grams: 120 } }]);
     const sent = JSON.parse(fake.calls[0]?.body ?? '{}');
     expect(sent.tool_choice).toEqual({ type: 'tool', name: 'log_food' });
   });
