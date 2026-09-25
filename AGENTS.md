@@ -17,8 +17,11 @@ the `LlmResult` and `LlmError` shape.
 
 ## Hard rules
 
-1. **Four runtime dependencies, exactly**: `ai`, `@ai-sdk/anthropic`,
-   `@ai-sdk/openai`, `@ai-sdk/google`. Adding a fifth is an owner decision.
+1. **Five runtime dependencies, exactly**: `ai`, `@ai-sdk/anthropic`,
+   `@ai-sdk/openai`, `@ai-sdk/google`, `@ai-sdk/gateway`. Adding a sixth is an
+   owner decision. All five are pinned to an exact version that has aged past
+   Deno's 24 hour minimum dependency age gate: `npm run aged-pins` when bumping,
+   never `"minimumDependencyAge": 0`.
 2. **No vendor leak.** A vendor host, a vendor SDK name or a vendor model id may
    appear in `src/registry.ts`, `src/adapters/` and the three speech adapter
    files. Nowhere else. `npm run no-vendor-leak` enforces it.
@@ -35,13 +38,21 @@ the `LlmResult` and `LlmError` shape.
 
 ## Adding a provider
 
-1. A registry row per tier in `src/registry.ts` with real capabilities and real
-   prices in USD per million tokens.
+1. A row in `ROWS` in `src/registry.ts` with real capabilities and real prices
+   in USD per million tokens, and the vendor page date in the header comment.
+   Wire it into `REGISTRY` only if it should be a tier default.
 2. A branch in `languageModel` and in `toProviderOptions` in
    `src/adapters/index.ts`.
-3. The key name in `KEY_FALLBACKS`.
+3. The provider name in `PROVIDERS` and the key name in `KEY_FALLBACKS`.
 4. A recorded response and a case in `test/result-shape.test.ts`, asserting the
    same `LlmResult` shape as every other adapter.
+
+## Adding a model row
+
+A row is not a tier default. Add it to `ROWS` with `documents` and
+`expectedCacheDiscount` filled in honestly (0 when the vendor publishes no
+cache discount). Moving a tier default in `REGISTRY` is an owner decision,
+because it changes what every unpinned role runs and what it costs.
 
 ## Adding a role
 
@@ -55,5 +66,6 @@ the `LlmResult` and `LlmError` shape.
 ```bash
 npm test
 npm run typecheck
-deno check --config deno.json fixtures/deno-check.ts fixtures/edge-function.ts
+npm run deno:check
+npm run boot:proof
 ```

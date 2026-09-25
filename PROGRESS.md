@@ -1,5 +1,24 @@
 # PROGRESS
 
+## v0.2.0, 25 Sep 2026: card A2 shipped
+
+| Step | State |
+|---|---|
+| `LLM_MODELS_<ROLE>` ordered chain, two entry form still works | done |
+| Fail fast: `LLM_CONNECT_TIMEOUT_MS` 2000, `LLM_TIMEOUT_MS` 30000, both raced | done |
+| Per target circuit breaker, `LLM_BREAKER_FAILURES` 3, `LLM_BREAKER_MS` 120000, one half open probe | done |
+| One structured line per hop and per breaker transition, sink swappable | done |
+| `gateway` provider via `@ai-sdk/gateway`, `AI_GATEWAY_API_KEY`, never a default | done |
+| `documents` and `expectedCacheDiscount` on every row | done |
+| gpt-6-astra, gpt-6-sol, gpt-6-luna, gemini-3.8-flash, gemini-3.1-pro-preview, hosted Qwen3.6-27B, three gateway rows | done |
+| `usageToCost` exported, cache discount applied to cached tokens | done |
+| `completeObject` on `generateText` with `Output.object`, one fixture through every adapter | done |
+| Exact aged pins, Deno minimum dependency age policy documented | done |
+| Edge function fixture plus a Deno boot proof | done |
+| Supabase edge runtime container boot proof | separate pass |
+| Tests: 77 vitest cases, no live network | done |
+| Gates: `no-emdash`, `no-vendor-leak`, `tsc`, `deno check` | done |
+
 ## v0.1.0, 25 Sep 2026: card A1 shipped
 
 Everything in the A1 scope is built and gated.
@@ -33,15 +52,21 @@ Everything in the A1 scope is built and gated.
   live captions rather than a finished clip.
 - **Embeddings and reranking.** The AI SDK covers both. Nothing in the portfolio
   needs them yet, so they are not in the contract.
-- **Gateway routing.** `@ai-sdk/gateway` arrives as a transitive dependency of
-  `ai` and is not wired up. If model routing ever moves to a gateway it becomes
-  another provider branch, not a rewrite.
+- **Gateway routing.** Wired in v0.2 as the `gateway` provider. It is a target,
+  never a default, and no role points at it yet.
+- **Promptfoo eval gate.** The research verdict pairs it with the registry.
+  It belongs in its own card, ahead of routing any role onto a new model.
+- **Tier default bumps.** gpt-6 and gemini-3.x rows are priced and pinnable, but
+  no tier default moved. Promoting one is an owner decision.
 
 ## Next
 
-1. Tag `v0.1.0` and pin `github:dlusn/ai#<sha>` in the consumer cards.
-2. cmd L1: replace `lib/ai/llm.ts` with the package, move `lib/ai/models.ts`
+1. Tag `v0.2.0` and pin `github:dlusn/ai#<sha>` in the consumer cards.
+2. Run the Supabase edge runtime boot proof (`supabase start`, then
+   `supabase functions serve seam` from `fixtures/supabase`) on a machine with
+   Docker up, and paste the curl output into this file.
+3. cmd L1: replace `lib/ai/llm.ts` with the package, move `lib/ai/models.ts`
    into `LLM_MODEL_<ROLE>` env, delete the local fallback in `_turn.ts`.
-3. body L1: replace the seven raw `fetch` edge functions with roles.
-4. Fold the ekoni ADR's role names in when it lands, if it adds any past the
+4. body L1: replace the seven raw `fetch` edge functions with roles.
+5. Fold the ekoni ADR's role names in when it lands, if it adds any past the
    five in the contract.
