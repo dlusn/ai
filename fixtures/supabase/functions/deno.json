@@ -1,9 +1,9 @@
 {
   "imports": {
-    "@dlusn/ai": "../../../src/index.ts",
-    "@dlusn/ai/speech": "../../../src/speech/index.ts",
-    "@dlusn/ai/stub": "../../../src/stub.ts",
-    "@dlusn/ai/pricing": "../../../src/pricing.ts",
+    "@dlusn/ai": "./_vendor/ai/index.ts",
+    "@dlusn/ai/speech": "./_vendor/ai/speech/index.ts",
+    "@dlusn/ai/stub": "./_vendor/ai/stub.ts",
+    "@dlusn/ai/pricing": "./_vendor/ai/pricing.ts",
     "ai": "npm:ai@5.0.265",
     "@ai-sdk/anthropic": "npm:@ai-sdk/anthropic@2.0.105",
     "@ai-sdk/openai": "npm:@ai-sdk/openai@2.0.129",
