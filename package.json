@@ -1,6 +1,6 @@
 {
   "name": "@dlusn/ai",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "LLM-agnostic seam for DLUSN and ekoni. Text, vision, structured output, speech, pricing.",

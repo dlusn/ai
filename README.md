@@ -215,6 +215,39 @@ await complete({
 });
 ```
 
+A tool loop is two more part types. The model's calls come back on
+`result.toolUses`, each with an `id`; you hand that id back as a `tool_use`
+part and answer it with a `tool_result` part on the next user turn. Replay the
+whole conversation each turn and every turn after the first keeps its context:
+
+```ts
+const first = await complete({ role: 'chat', system, messages, maxTokens: 1024, tools });
+
+const answered = [
+  ...messages,
+  { role: 'assistant', content: [
+    ...(first.text ? [{ type: 'text', text: first.text } as const] : []),
+    ...first.toolUses.map((use) => ({ type: 'tool_use', id: use.id, name: use.name, input: use.input } as const)),
+  ] },
+  { role: 'user', content: first.toolUses.map((use) => ({
+    type: 'tool_result',
+    toolUseId: use.id,
+    content: run(use.name, use.input), // a string, or text and image parts
+  } as const)) },
+];
+
+const second = await complete({ role: 'chat', system, messages: answered, maxTokens: 1024, tools });
+```
+
+`isError: true` on a `tool_result` tells the model the tool failed, rather than
+passing the failure off as an ordinary answer. A `tool_result` whose
+`toolUseId` matches no earlier `tool_use` is a `bad_request` before any network
+work starts: a dropped tool turn is never silent.
+
+`LLM_PROVIDER=stub` round trips the loop too. The stub echoes the newest
+`tool_result` it was handed in its text, so a tool loop can be tested end to
+end with no vendor key.
+
 Structured output takes plain JSON Schema, so no schema library enters the
 dependency list:
 
@@ -280,7 +313,11 @@ const { usd: billed } = usageToCost(row.provider, row.model, row.usage);
 ```
 
 An unpriced provider and model pair books zero and calls the hook. It never
-throws in a request path.
+throws in a request path. It also writes one structured warn line naming the
+pair, `{"event":"llm.unpriced","target":"provider/model"}`, once per isolate:
+zero is the safe answer in a request path, but a spend cap reading zero forever
+because an id has no row is not something a deployment should have to notice on
+its own.
 
 Cached input tokens bill at the row's published cache read price. Where a
 vendor publishes none, they bill at the input price less the row's

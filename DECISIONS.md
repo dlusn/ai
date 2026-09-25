@@ -2,6 +2,64 @@
 
 Living record. Newest first.
 
+## 25 Sep 2026, v0.3.0
+
+### A tool_result rides a user turn, and the seam moves it
+
+The vendors disagree about whose turn a tool answer is: anthropic puts it in a
+user message, the AI SDK gives it a `tool` role of its own. A caller should not
+have to know that, and a third role on `LlmMessage` would be a new thing to get
+wrong. So a `tool_result` part sits on the user turn the caller already owns,
+and `toModelMessages` splits that turn into a tool message plus whatever else
+the caller said, in that order. One contract turn can become two AI SDK
+messages, which is the only place the mapping is not one to one.
+
+### The contract part carries the call id, not the tool name
+
+The AI SDK tool result part wants the tool's name as well as the id, and
+anthropic's wire shape does not. Rather than make every caller carry the name
+twice and get it wrong once, `toModelMessages` recovers it from the `tool_use`
+the id points at, which is in the same conversation by definition. A
+`tool_result` whose id matches no `tool_use` throws `bad_request` before any
+network work starts, because the alternative is dropping a tool turn silently,
+which is the exact failure this card exists to close.
+
+### A text only assistant turn still goes over as a plain string
+
+Assistant parts could all have become an array now that tool calls live there.
+They do not: a turn whose parts are all text is still joined to a string, the
+v0.2 shape. A consumer that never sends a tool part sees a byte identical
+request, which is what "nothing existing changes shape" has to mean.
+
+### The stub echoes the tool result it was handed
+
+A stub that ignored a `tool_result` would pass a broken round trip exactly as
+happily as a working one, so the contract test would prove nothing without a
+vendor key. The stub now appends `tool_result <id>: <content>` to its fixture
+text whenever a result is in the conversation. That is a behaviour change only
+for a caller that sends tool parts, which no v0.2 caller does.
+
+### An unpriced pair still meters zero, and now says so
+
+Throwing in a request path over a missing price row is worse than booking zero,
+so zero stays. But zero is also how a consumer's daily spend cap quietly
+becomes a no-op, which is how this card's second gap went unnoticed. One
+structured warn line per unknown pair per isolate,
+`{"event":"llm.unpriced","target":"provider/model"}`, on its own dedupe set
+rather than through `setLlmLogger`: `LlmLogEvent` requires a role, and an
+unpriced pair has none.
+
+### Two anthropic tier default prices look stale, and were left alone
+
+Both vendor pricing pages, read 25 Sep 2026, put Sonnet 5 at $2 in and $10 out
+with a $0.20 cache read and a $2.50 cache write, and Opus 5.5 at $4 in and $20
+out with a $0.20 cache read and a $5 cache write. The rows in `ROWS` say $3/$15
+and $5/$25. Both are tier defaults, so correcting them moves what every
+unpinned role costs and rewrites the existing pricing tests, which this card's
+acceptance pins. The new rows are correct; these two are flagged for the owner
+rather than changed here. Sonnet 5 over bills by 50 percent and Opus 5.5 by 25
+percent until someone decides.
+
 ## 25 Sep 2026, v0.2.0
 
 ### A chain entry carries its own base URL after a pipe
