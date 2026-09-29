@@ -131,15 +131,15 @@ followed by `|baseURL`:
 LLM_MODELS_EXTRACT="openai-compatible/Qwen/Qwen3.6-27B|http://rig.local:8000/v1,openai-compatible/Qwen/Qwen3.6-27B|https://api.deepinfra.com/v1/openai"
 
 # The broker first, anthropic direct behind it.
-LLM_MODELS_DRAFT="gateway/anthropic/claude-sonnet-5,anthropic/claude-sonnet-5"
+LLM_MODELS_DRAFT="gateway/anthropic/claude-sonnet-5-5,anthropic/claude-sonnet-5-5"
 
 # The two entry form, unchanged from v0.1.
 LLM_MODEL_CHAT=claude-opus-5-5
-LLM_FALLBACK_CHAT=claude-sonnet-5
+LLM_FALLBACK_CHAT=claude-sonnet-5-5
 ```
 
 The first slash splits the provider off, so a gateway id keeps its own slash:
-`gateway/anthropic/claude-sonnet-5`. `LLM_MODEL_<ROLE>` and
+`gateway/anthropic/claude-sonnet-5-5`. `LLM_MODEL_<ROLE>` and
 `LLM_FALLBACK_<ROLE>` never read a provider prefix, so the same string means
 one thing there and one thing in a chain entry.
 

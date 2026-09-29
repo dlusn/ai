@@ -7,6 +7,7 @@ import {
   cacheWriteTokens,
   languageModel,
   toLlmError,
+  forcedToolLine,
   toModelMessages,
   toProviderOptions,
   toToolChoice,
@@ -52,7 +53,9 @@ function baseCallOptions(
 ) {
   return {
     model: languageModel(target, target.model, resolved.connectTimeoutMs),
-    system: req.system,
+    system: [req.system, req.tools?.length ? forcedToolLine(req.toolChoice, target.capabilities.forcedToolChoice !== false) : '']
+      .filter(Boolean)
+      .join('\n\n'),
     messages: toModelMessages(req.messages),
     maxOutputTokens: req.maxTokens,
     // One retry policy, in one place. The SDK's own backoff would hide a
@@ -193,7 +196,7 @@ export async function complete(req: LlmRequest): Promise<LlmResult> {
       ...(() => {
         const tools = toToolSet(req.tools);
         if (!tools) return {};
-        const choice = toToolChoice(req.toolChoice);
+        const choice = toToolChoice(req.toolChoice, target.capabilities.forcedToolChoice !== false);
         return { tools, ...(choice ? { toolChoice: choice } : {}) };
       })(),
     });
@@ -233,7 +236,7 @@ export async function* stream(req: LlmRequest): AsyncIterable<LlmChunk> {
       ...(() => {
         const tools = toToolSet(req.tools);
         if (!tools) return {};
-        const choice = toToolChoice(req.toolChoice);
+        const choice = toToolChoice(req.toolChoice, target.capabilities.forcedToolChoice !== false);
         return { tools, ...(choice ? { toolChoice: choice } : {}) };
       })(),
     });

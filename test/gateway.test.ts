@@ -35,18 +35,18 @@ afterEach(() => {
 
 describe('gateway provider', () => {
   it('resolves gateway plus a vendor/model id', () => {
-    setEnv({ LLM_PROVIDER: 'gateway', AI_GATEWAY_API_KEY: 'gw', LLM_MODEL_CHAT: 'anthropic/claude-sonnet-5' });
+    setEnv({ LLM_PROVIDER: 'gateway', AI_GATEWAY_API_KEY: 'gw', LLM_MODEL_CHAT: 'anthropic/claude-sonnet-5-5' });
 
     const resolved = resolveModel('chat');
 
     expect(resolved.provider).toBe('gateway');
-    expect(resolved.model).toBe('anthropic/claude-sonnet-5');
+    expect(resolved.model).toBe('anthropic/claude-sonnet-5-5');
     expect(resolved.apiKey).toBe('gw');
     expect(resolved.capabilities.caching).toBe(true);
   });
 
   it('answers in the contract shape, same as every direct adapter', async () => {
-    setEnv({ LLM_PROVIDER: 'gateway', AI_GATEWAY_API_KEY: 'gw', LLM_MODEL_CHAT: 'anthropic/claude-sonnet-5' });
+    setEnv({ LLM_PROVIDER: 'gateway', AI_GATEWAY_API_KEY: 'gw', LLM_MODEL_CHAT: 'anthropic/claude-sonnet-5-5' });
     const fake = fakeFetch(() => jsonResponse(GATEWAY_REPLY));
     restore = fake.restore;
 
@@ -57,13 +57,13 @@ describe('gateway provider', () => {
       toolUses: [],
       stopReason: 'end',
       provider: 'gateway',
-      model: 'anthropic/claude-sonnet-5',
+      model: 'anthropic/claude-sonnet-5-5',
     });
     expect(result.usage).toEqual({ input: 120, output: 18, cacheRead: 40, cacheWrite: 0 });
 
     const call = fake.calls[0];
     expect(call?.url).toContain('/language-model');
-    expect(call?.init?.headers).toMatchObject({ 'ai-language-model-id': 'anthropic/claude-sonnet-5' });
+    expect(call?.init?.headers).toMatchObject({ 'ai-language-model-id': 'anthropic/claude-sonnet-5-5' });
     // The vendor knob still reaches the vendor, namespaced, through the broker.
     expect(JSON.parse(call?.body ?? '{}').providerOptions).toEqual({
       anthropic: { cacheControl: { type: 'ephemeral' } },
@@ -75,8 +75,8 @@ describe('gateway provider', () => {
       LLM_PROVIDER: 'gateway',
       AI_GATEWAY_API_KEY: 'gw',
       ANTHROPIC_API_KEY: 'direct',
-      LLM_MODEL_CHAT: 'anthropic/claude-sonnet-5',
-      LLM_MODELS_DRAFT: 'anthropic/claude-sonnet-5',
+      LLM_MODEL_CHAT: 'anthropic/claude-sonnet-5-5',
+      LLM_MODELS_DRAFT: 'anthropic/claude-sonnet-5-5',
     });
 
     expect(resolveModel('chat').provider).toBe('gateway');
@@ -85,7 +85,7 @@ describe('gateway provider', () => {
   });
 
   it('turns a gateway error into an LlmError with a kind and a status', async () => {
-    setEnv({ LLM_PROVIDER: 'gateway', AI_GATEWAY_API_KEY: 'gw', LLM_MODEL_CHAT: 'anthropic/claude-sonnet-5' });
+    setEnv({ LLM_PROVIDER: 'gateway', AI_GATEWAY_API_KEY: 'gw', LLM_MODEL_CHAT: 'anthropic/claude-sonnet-5-5' });
     const fake = fakeFetch(() => jsonResponse({ error: { message: 'slow down', type: 'rate_limit_exceeded' } }, 429));
     restore = fake.restore;
 

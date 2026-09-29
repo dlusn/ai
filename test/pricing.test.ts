@@ -11,14 +11,14 @@ function result(over: Partial<LlmResult> = {}): LlmResult {
     stopReason: 'end',
     usage: { input: 1_000_000, output: 1_000_000, cacheRead: 0, cacheWrite: 0 },
     provider: 'anthropic',
-    model: 'claude-sonnet-5',
+    model: 'claude-sonnet-5-5',
     ...over,
   };
 }
 
 describe('costOf', () => {
   it('bills a million of each at the registry rate', () => {
-    // Sonnet 5 is 2 in and 10 out per million.
+    // Sonnet 5.5 is 2 in and 10 out per million.
     expect(costOf(result())).toBeCloseTo(12, 10);
   });
 
@@ -136,7 +136,7 @@ describe('the ids DLUSN consumers pin', () => {
 
 describe('usageToCost', () => {
   it('meters in currency without an LlmResult', () => {
-    const breakdown = usageToCost('anthropic', 'claude-sonnet-5', {
+    const breakdown = usageToCost('anthropic', 'claude-sonnet-5-5', {
       input: 1_000_000,
       output: 1_000_000,
       cacheRead: 0,
@@ -159,7 +159,7 @@ describe('usageToCost', () => {
   });
 
   it('prices a brokered call off the gateway row', () => {
-    const breakdown = usageToCost('gateway', 'anthropic/claude-sonnet-5', {
+    const breakdown = usageToCost('gateway', 'anthropic/claude-sonnet-5-5', {
       input: 1_000_000,
       output: 0,
       cacheRead: 1_000_000,

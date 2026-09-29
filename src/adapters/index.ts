@@ -231,10 +231,22 @@ export function toToolSet(tools: LlmRequest['tools']): ToolSet | undefined {
   return set;
 }
 
-export function toToolChoice(choice: LlmRequest['toolChoice']) {
+export function toToolChoice(choice: LlmRequest['toolChoice'], forced = true) {
   if (choice === undefined) return undefined;
+  if (!forced && choice !== 'auto' && choice !== 'none') return 'auto' as const;
   if (typeof choice === 'string') return choice;
   return { type: 'tool' as const, toolName: choice.name };
+}
+
+/**
+ * The system line that stands in for a forced tool_choice on a model that
+ * answers 400 to one. Empty when the choice was not forced or the row allows it.
+ */
+export function forcedToolLine(choice: LlmRequest['toolChoice'], forced = true): string {
+  if (forced || choice === undefined || choice === 'auto' || choice === 'none') return '';
+  return typeof choice === 'object'
+    ? `Answer by calling the ${choice.name} tool.`
+    : 'Answer by calling one of the provided tools.';
 }
 
 /**

@@ -67,6 +67,11 @@ const ANTHROPIC_CAPS = caps({
   maxOutput: 64_000,
 });
 
+// The 5.x models (fable 5.1, opus 5.5, sonnet 5.5) answer 400 to a forced
+// tool_choice, so the seam sends auto and names the tool in the system prompt.
+const ANTHROPIC_5_CAPS = { ...ANTHROPIC_CAPS, forcedToolChoice: false };
+const ANTHROPIC_SONNET_5_5_CAPS = { ...ANTHROPIC_5_CAPS, contextTokens: 1_000_000, maxOutput: 128_000 };
+
 // GPT-5 and GPT-6: 400k and 1.05M context, automatic prompt caching at a tenth
 // of input, reasoning effort, image input, PDF input through the files API.
 const OPENAI_5_CAPS = caps({
@@ -99,21 +104,22 @@ const GEMINI_CAPS = caps({
  */
 export const ROWS: readonly RegistryRow[] = [
   // Anthropic. Prices read 25 Sep 2026 from platform.claude.com/docs/en/about-claude/pricing:
-  // Sonnet 5 is 2/10 (the launch price became standard), Opus 5.5 is 4/20 with a
+  // Sonnet 5.5 is 2/10 (same as Sonnet 5), Opus 5.5 is 4/20 with a
   // 0.05x cache read, the rest 0.1x.
   row('anthropic', 'claude-haiku-4-5', { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25 }, ANTHROPIC_CAPS, 0.9),
-  row('anthropic', 'claude-sonnet-5', { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 }, ANTHROPIC_CAPS, 0.9),
-  row('anthropic', 'claude-opus-5-5', { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 5 }, ANTHROPIC_CAPS, 0.95),
+  row('anthropic', 'claude-sonnet-5-5', { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 }, ANTHROPIC_SONNET_5_5_CAPS, 0.9),
+  row('anthropic', 'claude-opus-5-5', { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 5 }, ANTHROPIC_5_CAPS, 0.95),
 
   // Owner rule 25 Sep 2026: anthropic rows are the latest of each tier only
-  // (fable 5.1, opus 5.5, sonnet 5, haiku 4.5). Consumers repoint older pins;
+  // (fable 5.1, opus 5.5, sonnet 5.5, haiku 4.5). A new sonnet bumps the pin,
+  // never a row beside the old one. Consumers repoint older pins;
   // no rows for older ids, an unknown id meters zero and warns once.
   //
   // Prices read 25 Sep 2026 from claude.com/pricing and from
   // platform.claude.com/docs/en/about-claude/pricing, which agree. Cache reads
   // are 0.025x input on fable 5.1 and 0.1x on the rest, which is why the
   // expected discount below is not one number for the whole vendor.
-  row('anthropic', 'claude-fable-5-1', { input: 10, output: 50, cacheRead: 0.25, cacheWrite: 12.5 }, ANTHROPIC_CAPS, 0.975),
+  row('anthropic', 'claude-fable-5-1', { input: 10, output: 50, cacheRead: 0.25, cacheWrite: 12.5 }, ANTHROPIC_5_CAPS, 0.975),
 
   // OpenAI GPT-5, still the tier defaults.
   row('openai', 'gpt-5-nano', { input: 0.05, output: 0.4, cacheRead: 0.005, cacheWrite: 0 }, OPENAI_5_CAPS, 0.9),
@@ -143,7 +149,7 @@ export const ROWS: readonly RegistryRow[] = [
   // Vercel AI Gateway. Model ids are vendor/model. The gateway bills the
   // vendor list price through, so these mirror the direct rows. Document input
   // is not brokered, so it books false whatever the vendor supports.
-  row('gateway', 'anthropic/claude-sonnet-5', { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 }, caps({ caching: true, thinking: true, contextTokens: 200_000, maxOutput: 64_000 }), 0.9),
+  row('gateway', 'anthropic/claude-sonnet-5-5', { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 }, caps({ caching: true, thinking: true, forcedToolChoice: false, contextTokens: 1_000_000, maxOutput: 128_000 }), 0.9),
   row('gateway', 'openai/gpt-6-sol', { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 0 }, caps({ caching: true, thinking: true, contextTokens: 1_050_000, maxOutput: 128_000 }), 0.9),
   row('gateway', 'google/gemini-3.8-flash', { input: 0.75, output: 3.75, cacheRead: 0.075, cacheWrite: 0 }, caps({ caching: true, thinking: true, contextTokens: 1_000_000, maxOutput: 64_000 }), 0.9),
 
@@ -163,7 +169,7 @@ function pick(provider: LlmProvider, model: string): RegistryRow {
 export const REGISTRY: Record<LlmProvider, Record<LlmTier, RegistryRow | null>> = {
   anthropic: {
     fast: pick('anthropic', 'claude-haiku-4-5'),
-    standard: pick('anthropic', 'claude-sonnet-5'),
+    standard: pick('anthropic', 'claude-sonnet-5-5'),
     best: pick('anthropic', 'claude-opus-5-5'),
   },
   openai: {
@@ -237,7 +243,7 @@ function keyFor(provider: LlmProvider): string | undefined {
  *
  * `prefixed` is false for the LLM_MODEL_<ROLE> and LLM_FALLBACK_<ROLE> pair,
  * which have always been bare ids on LLM_PROVIDER. Reading a provider out of
- * those would make a gateway id like `anthropic/claude-sonnet-5` mean two
+ * those would make a gateway id like `anthropic/claude-sonnet-5-5` mean two
  * different things depending on which var it sat in.
  */
 function parseTarget(entry: string, role: LlmRole, provider: LlmProvider, prefixed: boolean): LlmTarget {

@@ -124,9 +124,9 @@ const ADAPTERS: Adapter[] = [
   },
   {
     name: 'gateway',
-    env: { LLM_PROVIDER: 'gateway', AI_GATEWAY_API_KEY: 'gw', LLM_MODEL_CHAT: 'anthropic/claude-sonnet-5' },
+    env: { LLM_PROVIDER: 'gateway', AI_GATEWAY_API_KEY: 'gw', LLM_MODEL_CHAT: 'anthropic/claude-sonnet-5-5' },
     provider: 'gateway',
-    model: 'anthropic/claude-sonnet-5',
+    model: 'anthropic/claude-sonnet-5-5',
     afterTool: GATEWAY_AFTER_TOOL,
     toolUse: GATEWAY_TOOL_USE,
     toolUseId: 'gw_call_recorded',

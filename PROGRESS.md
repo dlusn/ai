@@ -1,5 +1,16 @@
 # PROGRESS
 
+## v0.4.0, 29 Sep 2026: Sonnet 5.5 pin, forced tool_choice downgrade
+
+| Step | State |
+|---|---|
+| `claude-sonnet-5` replaced by `claude-sonnet-5-5` (anthropic and gateway rows, `standard` tier), 1M context, 128K max output | done |
+| `forcedToolChoice: false` capability on fable-5-1, opus-5-5, sonnet-5-5 and the gateway sonnet row | done |
+| `toToolChoice` sends `auto` and `complete`/`stream` append one system line when the row lacks it | done |
+| No `thinking: { type: 'disabled' }` is sent anywhere (only `enabled`, only when asked) | confirmed |
+| `test/forced-tool-choice.test.ts` | done |
+| `completeObject` on anthropic 5.x still rides the SDK's own forced tool for structured output | open, see SUMMARY.md |
+
 ## v0.3.0, 25 Sep 2026: card A3 shipped
 
 Closes the two silent failure gaps the L2 run found on cmd#47.
