@@ -21,7 +21,7 @@ export async function checkEverything(): Promise<LlmResult> {
 
   resolveModel('chat');
   void REGISTRY.anthropic.best;
-  void priceFor('anthropic', 'claude-sonnet-5');
+  void priceFor('anthropic', 'claude-sonnet-5-5');
   void sttProvider();
   void ttsProvider();
 

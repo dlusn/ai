@@ -7,7 +7,7 @@ export const ANTHROPIC_MESSAGE = {
   id: 'msg_recorded',
   type: 'message',
   role: 'assistant',
-  model: 'claude-sonnet-5',
+  model: 'claude-sonnet-5-5',
   content: [{ type: 'text', text: RECORDED_TEXT }],
   stop_reason: 'end_turn',
   stop_sequence: null,

@@ -35,19 +35,19 @@ describe('chain parsing', () => {
       LLM_PROVIDER: 'anthropic',
       LLM_API_KEY: 'k',
       AI_GATEWAY_API_KEY: 'g',
-      LLM_MODELS_CHAT: 'anthropic/claude-sonnet-5, gateway/anthropic/claude-sonnet-5, stub/stub-best',
+      LLM_MODELS_CHAT: 'anthropic/claude-sonnet-5-5, gateway/anthropic/claude-sonnet-5-5, stub/stub-best',
     });
 
     const resolved = resolveModel('chat');
 
     expect(resolved.targets.map((target) => `${target.provider} ${target.model}`)).toEqual([
-      'anthropic claude-sonnet-5',
-      'gateway anthropic/claude-sonnet-5',
+      'anthropic claude-sonnet-5-5',
+      'gateway anthropic/claude-sonnet-5-5',
       'stub stub-best',
     ]);
     expect(resolved.provider).toBe('anthropic');
-    expect(resolved.model).toBe('claude-sonnet-5');
-    expect(resolved.fallback).toBe('anthropic/claude-sonnet-5');
+    expect(resolved.model).toBe('claude-sonnet-5-5');
+    expect(resolved.fallback).toBe('anthropic/claude-sonnet-5-5');
   });
 
   it('still builds the two entry chain out of LLM_MODEL and LLM_FALLBACK', () => {

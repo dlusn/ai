@@ -179,6 +179,8 @@ export type LlmCapabilities = {
   structuredOutput: boolean;
   caching: boolean;
   thinking: boolean;
+  /** The vendor accepts a forced tool_choice. Absent means yes. */
+  forcedToolChoice?: boolean;
   contextTokens: number;
   maxOutput: number;
 };

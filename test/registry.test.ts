@@ -14,8 +14,8 @@ describe('resolve matrix', () => {
       env: { LLM_PROVIDER: 'anthropic', LLM_API_KEY: 'k' },
       expect: {
         chat: 'claude-opus-5-5',
-        draft: 'claude-sonnet-5',
-        vision: 'claude-sonnet-5',
+        draft: 'claude-sonnet-5-5',
+        vision: 'claude-sonnet-5-5',
         extract: 'claude-haiku-4-5',
         triage: 'claude-haiku-4-5',
       },
@@ -118,7 +118,8 @@ describe('registry rows', () => {
         if (!row) continue;
         expect(row.provider).toBe(provider);
         expect(Object.keys(row.price).sort()).toEqual(['cacheRead', 'cacheWrite', 'input', 'output']);
-        expect(Object.keys(row.capabilities).sort()).toEqual([
+        // forcedToolChoice is optional, absent means the vendor accepts it.
+        expect(Object.keys(row.capabilities).filter((key) => key !== 'forcedToolChoice').sort()).toEqual([
           'caching',
           'contextTokens',
           'documents',
@@ -135,8 +136,29 @@ describe('registry rows', () => {
     }
   });
 
+  it('keeps exactly the latest anthropic id per tier', () => {
+    expect(ROWS.filter((row) => row.provider === 'anthropic').map((row) => row.model).sort()).toEqual([
+      'claude-fable-5-1',
+      'claude-haiku-4-5',
+      'claude-opus-5-5',
+      'claude-sonnet-5-5',
+    ]);
+  });
+
+  it('marks the 5.x anthropic rows as refusing a forced tool_choice', () => {
+    for (const [provider, model] of [
+      ['anthropic', 'claude-fable-5-1'],
+      ['anthropic', 'claude-opus-5-5'],
+      ['anthropic', 'claude-sonnet-5-5'],
+      ['gateway', 'anthropic/claude-sonnet-5-5'],
+    ] as const) {
+      expect(rowFor(provider, model)?.capabilities.forcedToolChoice).toBe(false);
+    }
+    expect(rowFor('anthropic', 'claude-haiku-4-5')?.capabilities.forcedToolChoice).toBeUndefined();
+  });
+
   it('looks a row up by provider and model', () => {
-    expect(rowFor('anthropic', 'claude-sonnet-5')?.capabilities.caching).toBe(true);
+    expect(rowFor('anthropic', 'claude-sonnet-5-5')?.capabilities.caching).toBe(true);
     expect(rowFor('anthropic', 'not-a-model')).toBeUndefined();
     expect(rowFor('nowhere', 'anything')).toBeUndefined();
   });

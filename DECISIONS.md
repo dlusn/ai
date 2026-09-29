@@ -2,6 +2,28 @@
 
 Living record. Newest first.
 
+## 29 Sep 2026, v0.4.0
+
+### Sonnet tier is claude-sonnet-5-5, one row per tier
+
+Owner pin. The latest-ids rule holds: the pin moves, no row stays beside the old
+one. Same $2/$10, 0.2 cache read, 2.5 cache write; 1M context, 128K max output.
+
+### A forced tool_choice is a capability, and the seam downgrades it
+
+fable-5-1, opus-5-5 and sonnet-5-5 return 400 on a forced `tool_choice`
+(`{ name }` or `required`). `LlmCapabilities.forcedToolChoice` is optional and
+absent means supported, so haiku, the other vendors and unknown models keep the
+forced choice exactly as before. Where it is `false` the request sends `auto`
+and appends one system line naming the tool, so call sites keep asking for a
+forced tool and never learn which model cannot honour it. The model can still
+answer in text; the caller already handles a turn with no tool use.
+
+### thinking is never sent disabled
+
+Only `{ type: 'enabled' }` is ever sent, and only when the caller asks and the
+row supports it. Sonnet 5.5 400s on `disabled`.
+
 ## 25 Sep 2026, v0.3.0
 
 ### A tool_result rides a user turn, and the seam moves it
