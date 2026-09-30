@@ -69,7 +69,7 @@ const ANTHROPIC_CAPS = caps({
 
 // The 5.x models (fable 5.1, opus 5.5, sonnet 5.5) answer 400 to a forced
 // tool_choice, so the seam sends auto and names the tool in the system prompt.
-const ANTHROPIC_5_CAPS = { ...ANTHROPIC_CAPS, forcedToolChoice: false };
+const ANTHROPIC_5_CAPS = { ...ANTHROPIC_CAPS, forcedToolChoice: false, effort: true };
 const ANTHROPIC_SONNET_5_5_CAPS = { ...ANTHROPIC_5_CAPS, contextTokens: 1_000_000, maxOutput: 128_000 };
 
 // GPT-5 and GPT-6: 400k and 1.05M context, automatic prompt caching at a tenth
@@ -149,7 +149,7 @@ export const ROWS: readonly RegistryRow[] = [
   // Vercel AI Gateway. Model ids are vendor/model. The gateway bills the
   // vendor list price through, so these mirror the direct rows. Document input
   // is not brokered, so it books false whatever the vendor supports.
-  row('gateway', 'anthropic/claude-sonnet-5-5', { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 }, caps({ caching: true, thinking: true, forcedToolChoice: false, contextTokens: 1_000_000, maxOutput: 128_000 }), 0.9),
+  row('gateway', 'anthropic/claude-sonnet-5-5', { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 }, caps({ caching: true, thinking: true, forcedToolChoice: false, effort: true, contextTokens: 1_000_000, maxOutput: 128_000 }), 0.9),
   row('gateway', 'openai/gpt-6-sol', { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 0 }, caps({ caching: true, thinking: true, contextTokens: 1_050_000, maxOutput: 128_000 }), 0.9),
   row('gateway', 'google/gemini-3.8-flash', { input: 0.75, output: 3.75, cacheRead: 0.075, cacheWrite: 0 }, caps({ caching: true, thinking: true, contextTokens: 1_000_000, maxOutput: 64_000 }), 0.9),
 

@@ -66,7 +66,7 @@ describe('gateway provider', () => {
     expect(call?.init?.headers).toMatchObject({ 'ai-language-model-id': 'anthropic/claude-sonnet-5-5' });
     // The vendor knob still reaches the vendor, namespaced, through the broker.
     expect(JSON.parse(call?.body ?? '{}').providerOptions).toEqual({
-      anthropic: { cacheControl: { type: 'ephemeral' } },
+      anthropic: { cacheControl: { type: 'ephemeral' }, effort: 'low' },
     });
   });
 
