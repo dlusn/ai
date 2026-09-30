@@ -2,6 +2,20 @@
 
 Living record. Newest first.
 
+## 30 Sep 2026, v0.4.2
+
+### A caller that did not ask for thinking gets effort low
+
+Sonnet 5.5, Opus 5.5 and Fable 5.1 think adaptively at effort `high` by default,
+and thinking tokens count against `max_tokens`: live on Body coach every reply
+used the full 512 and one came back empty. `thinking: { type: 'disabled' }` is a
+400 on these models, so the dial is `output_config.effort`. The anthropic branch
+of `toProviderOptions` (gateway reuses it) sends `effort: 'low'` unless the
+caller asks for thinking, in which case the vendor default stands.
+`LlmRequest.effort` overrides either way. Gated by a new optional `effort`
+capability (absent means no), so haiku 4.5, which has thinking but no effort
+dial, is untouched.
+
 ## 30 Sep 2026, v0.4.1
 
 ### The first-byte budget belongs to streams only

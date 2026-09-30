@@ -93,6 +93,12 @@ export type LlmRequest = {
   cache?: boolean;
   /** Opt in to extended thinking where the provider supports it, ignored elsewhere. */
   thinking?: { budgetTokens?: number } | boolean;
+  /**
+   * Anthropic 5.x effort dial, wins over the default. Without it, a request that
+   * did not ask for thinking is sent `low`. Ignored by other vendors and by rows
+   * without the `effort` capability.
+   */
+  effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   signal?: AbortSignal;
 };
 
@@ -181,6 +187,8 @@ export type LlmCapabilities = {
   thinking: boolean;
   /** The vendor accepts a forced tool_choice. Absent means yes. */
   forcedToolChoice?: boolean;
+  /** The vendor takes `output_config.effort` and thinks by default (anthropic 5.x). Absent means no. */
+  effort?: boolean;
   contextTokens: number;
   maxOutput: number;
 };

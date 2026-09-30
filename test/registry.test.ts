@@ -118,8 +118,8 @@ describe('registry rows', () => {
         if (!row) continue;
         expect(row.provider).toBe(provider);
         expect(Object.keys(row.price).sort()).toEqual(['cacheRead', 'cacheWrite', 'input', 'output']);
-        // forcedToolChoice is optional, absent means the vendor accepts it.
-        expect(Object.keys(row.capabilities).filter((key) => key !== 'forcedToolChoice').sort()).toEqual([
+        // forcedToolChoice and effort are optional: absent means accepted and unsupported.
+        expect(Object.keys(row.capabilities).filter((key) => key !== 'forcedToolChoice' && key !== 'effort').sort()).toEqual([
           'caching',
           'contextTokens',
           'documents',

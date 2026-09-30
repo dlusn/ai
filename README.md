@@ -176,6 +176,11 @@ Every hop and every breaker transition emits one structured line:
 | `vercel-gateway` (`gateway`) | `AI_GATEWAY_API_KEY` | required, `vendor/model` | per vendor | no | per vendor | per vendor |
 | `stub` | none | tier defaults | n/a | n/a | n/a | n/a |
 
+Anthropic 5.x rows (Fable 5.1, Opus 5.5, Sonnet 5.5) think by default and the
+thinking tokens eat `maxTokens`, so a request that does not set `thinking` is
+sent `effort: 'low'`. Set `thinking` to keep the vendor default, or pass
+`effort` (`low` to `max`) to choose. Haiku 4.5 and other vendors get no effort field.
+
 The gateway is a target like any other and **never a default**: selecting it
 means naming the model id. Research verdict, 25 Sep 2026: health adjacent
 coaching chat does not go through a broker, so the coach role pins `anthropic`

@@ -256,7 +256,7 @@ export function forcedToolLine(choice: LlmRequest['toolChoice'], forced = true):
 export function toProviderOptions(
   provider: LlmProvider,
   req: LlmRequest,
-  supports: { caching: boolean; thinking: boolean },
+  supports: { caching: boolean; thinking: boolean; effort?: boolean },
   modelId = '',
 ): Record<string, Record<string, JSONValue>> | undefined {
   const thinkingBudget = typeof req.thinking === 'object' ? req.thinking.budgetTokens : undefined;
@@ -276,6 +276,12 @@ export function toProviderOptions(
     if (supports.caching && req.cache) options.cacheControl = { type: 'ephemeral' };
     if (supports.thinking && wantsThinking) {
       options.thinking = { type: 'enabled', ...(thinkingBudget ? { budgetTokens: thinkingBudget } : {}) };
+    }
+    // 5.x models think by default at effort high and thinking tokens eat
+    // max_tokens. `thinking: disabled` is a 400 there, so the dial is effort.
+    if (supports.thinking && supports.effort) {
+      const effort = req.effort ?? (wantsThinking ? undefined : 'low');
+      if (effort) options.effort = effort;
     }
     return Object.keys(options).length ? { anthropic: options } : undefined;
   }

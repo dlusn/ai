@@ -1,5 +1,16 @@
 # PROGRESS
 
+## v0.4.2, 30 Sep 2026: effort low by default on 5.x
+
+| Step | State |
+|---|---|
+| anthropic branch sends `effort: 'low'` when the caller did not ask for thinking and the row has the `effort` capability (fable-5-1, opus-5-5, sonnet-5-5, gateway sonnet) | done |
+| `LlmRequest.effort` override wins over the default; ignored by other vendors and rows without the capability | done |
+| haiku 4.5 and other rows: no effort field | done |
+| `thinking: { type: 'disabled' }` and `budget_tokens` never sent to a 5.x row without a caller ask | confirmed |
+| `test/effort.test.ts` (direct and gateway) | done |
+| cmd + body re-vendor, then review Body `maxTokens` caps against measured usage | open, Onyx |
+
 ## v0.4.1, 30 Sep 2026: first-byte budget is streaming only
 
 | Step | State |
