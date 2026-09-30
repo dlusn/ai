@@ -95,7 +95,7 @@ the bind mount into the runtime container is empty.
 | `LLM_MODELS_<ROLE>` | none | The ordered fallback chain. See below. Wins over the two variables under it. |
 | `LLM_MODEL_<ROLE>` | registry tier row | Pins the model id for one role, for example `LLM_MODEL_CHAT`. A bare id on `LLM_PROVIDER`, never a `provider/model` pair. Required for `openai-compatible` and `gateway`, which have no honest default. |
 | `LLM_FALLBACK_<ROLE>` | none | Second model id in the chain, the two entry form of `LLM_MODELS_<ROLE>`. |
-| `LLM_CONNECT_TIMEOUT_MS` | `2000` | Milliseconds to first byte before a target is given up on. |
+| `LLM_CONNECT_TIMEOUT_MS` | `2000` | Milliseconds to first byte before a target is given up on. Streaming calls only: a non-streaming reply sends nothing until it is fully generated, so `complete` and `completeObject` are bounded by `LLM_TIMEOUT_MS` alone. |
 | `LLM_TIMEOUT_MS` | `30000` | Milliseconds for one whole attempt on one target. |
 | `LLM_BREAKER_FAILURES` | `3` | Consecutive failures that open a target. |
 | `LLM_BREAKER_MS` | `120000` | How long a target stays open before one half open probe. |
@@ -145,7 +145,7 @@ one thing there and one thing in a chain entry.
 
 The seam tries each target in order and moves on when the target answers a
 retryable failure (`rate_limit`, `overloaded`, `unavailable`, or a 404 on the
-id), sends no first byte inside `LLM_CONNECT_TIMEOUT_MS`, or does not finish
+id), sends no first byte inside `LLM_CONNECT_TIMEOUT_MS` (streaming only), or does not finish
 inside `LLM_TIMEOUT_MS`. A `bad_request` or an `auth` failure stops the chain:
 the next target would fail the same way.
 

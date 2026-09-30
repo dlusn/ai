@@ -2,6 +2,17 @@
 
 Living record. Newest first.
 
+## 30 Sep 2026, v0.4.1
+
+### The first-byte budget belongs to streams only
+
+A non-streaming request returns no bytes until the whole completion is
+generated, so racing its fetch against `LLM_CONNECT_TIMEOUT_MS` (2s) killed
+every reply that took longer to generate (live on Body coach, 30 Sep).
+`complete` and `completeObject` now build the model with no connect budget;
+`LLM_TIMEOUT_MS` still bounds the whole attempt. `stream` keeps the race, where
+first byte means the response has started. One fetch wrapper, no new option.
+
 ## 29 Sep 2026, v0.4.0
 
 ### Sonnet tier is claude-sonnet-5-5, one row per tier

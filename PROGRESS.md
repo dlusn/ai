@@ -1,5 +1,15 @@
 # PROGRESS
 
+## v0.4.1, 30 Sep 2026: first-byte budget is streaming only
+
+| Step | State |
+|---|---|
+| `complete` and `completeObject` no longer pass `LLM_CONNECT_TIMEOUT_MS` to the fetch wrapper; only `LLM_TIMEOUT_MS` bounds them | done |
+| `stream` keeps the first-byte race | done |
+| README line for `LLM_CONNECT_TIMEOUT_MS` says streaming only | done |
+| `test/connect-budget.test.ts` | done |
+| Body `LLM_CONNECT_TIMEOUT_MS=25000` secret can be dropped after re-vendor | open, Onyx |
+
 ## v0.4.0, 29 Sep 2026: Sonnet 5.5 pin, forced tool_choice downgrade
 
 | Step | State |
