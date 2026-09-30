@@ -50,9 +50,10 @@ function baseCallOptions(
   target: LlmTarget,
   req: LlmRequest,
   signal: AbortSignal,
+  connectMs?: number,
 ) {
   return {
-    model: languageModel(target, target.model, resolved.connectTimeoutMs),
+    model: languageModel(target, target.model, connectMs),
     system: [req.system, req.tools?.length ? forcedToolLine(req.toolChoice, target.capabilities.forcedToolChoice !== false) : '']
       .filter(Boolean)
       .join('\n\n'),
@@ -78,7 +79,8 @@ function worthFailingOver(error: LlmError): boolean {
 
 /**
  * Walk the chain from LLM_MODELS_<ROLE>. Each target gets one attempt, bounded
- * by LLM_CONNECT_TIMEOUT_MS to first byte and LLM_TIMEOUT_MS in total. A target
+ * by LLM_TIMEOUT_MS in total, and a stream also by LLM_CONNECT_TIMEOUT_MS to
+ * first byte. A target
  * that keeps failing trips its breaker and gets skipped outright until the
  * window passes, which is what makes a dead home rig cost nothing on the second
  * call rather than a timeout every time.
@@ -232,7 +234,9 @@ export async function* stream(req: LlmRequest): AsyncIterable<LlmChunk> {
   // opening the stream only.
   const opened = await runChain(resolved, async (target, signal) => {
     const handle = streamText({
-      ...baseCallOptions(resolved, target, req, linked(signal, req.signal)),
+      // The first-byte race is right here only: a non-streaming reply sends no
+      // byte until it is fully generated, so complete leaves it off.
+      ...baseCallOptions(resolved, target, req, linked(signal, req.signal), resolved.connectTimeoutMs),
       ...(() => {
         const tools = toToolSet(req.tools);
         if (!tools) return {};

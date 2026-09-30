@@ -155,12 +155,12 @@ describe('fail over', () => {
     expect(log.lines.some((line) => line.event === 'llm.breaker_close')).toBe(true);
   });
 
-  it('gives up on a target that never sends a first byte and moves on', async () => {
+  it('gives up on a target that never answers inside the total budget and moves on', async () => {
     setEnv({
       LLM_PROVIDER: 'anthropic',
       LLM_API_KEY: 'k',
       LLM_MODELS_CHAT: 'anthropic/slow-id,stub/stub-best',
-      LLM_CONNECT_TIMEOUT_MS: '120',
+      LLM_TIMEOUT_MS: '120',
     });
     setStubFixtures({ chat: 'from the fallback' });
     const log = collectLogs();
